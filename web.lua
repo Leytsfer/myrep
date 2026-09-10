@@ -104,10 +104,10 @@ local C = {
 local LOGO_LINES = {
     "██╗   ██╗██╗██████╗       ███████╗██╗  ██╗ ██████╗ ██████╗ ",
     "██║   ██║██║██╔══██╗      ██╔════╝██║  ██║██╔═══██╗██╔══██╗",
-    "██║   ██║██║██████╔╝█████╗███████╗███████║██║   ██║██████╔╝",
+    "██║   ██║██║██████╝█████╗███████╗███████║██║   ██║██████╔╝",
     "╚██╗ ██╔╝██║██╔═══╝ ╚════╝╚════██║██╔══██║██║   ██║██╔═══╝ ",
     " ╚████╔╝ ██║██║           ███████║██║  ██║╚██████╔╝██║     ",
-    "  ╚═══╝  ╚═╝╚═╝           ╚══════╝╚═╝  ╚═╝ ╚═════╝ ╚═╝     "
+    "  ╚═══╝  ╚═╝╚═╝           ╚══════╝╚═╝  ╚═╝ ╚═════╝ ═╝     "
 }
 local FOOTER_OWNER = "ZoziDo"
 local FOOTER_VERSION = "v3.0.2"
@@ -362,13 +362,6 @@ local currentStatus = {
     marker = C.green
 }
 
-local function setStatus(text, color, marker)
-    currentStatus.text = tostring(text or "")
-    currentStatus.color = color or C.white
-    currentStatus.marker = marker or C.green
-    drawStatus()
-end
-
 local function makeBorder()
     return "+"
         .. string.rep("=", UI.takeW)
@@ -592,6 +585,13 @@ local function drawInterface()
     drawStatus()
     drawTotalLine()
     drawFooter()
+end
+
+local function setStatus(text, color, marker)
+    currentStatus.text = tostring(text or "")
+    currentStatus.color = color or C.white
+    currentStatus.marker = marker or C.green
+    drawStatus()
 end
 
 -- ============================================================
