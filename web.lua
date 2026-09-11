@@ -3326,7 +3326,7 @@ local ch = ev[3]
 local playerName = ev[5] or "Неизвестный"
 if State.pimActive and State.currentPlayer and PimModule.isOwner(playerName) and PimModule.ensureValid(State.currentPlayer) then
 -- Патч 11: при бане блокируем клавиатуру
-if State.modalState.kind == "ban" then
+if State.bannedNow then
 -- no-op
 elseif isCraftingBusy() then
 -- игрок ждёт крафт
