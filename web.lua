@@ -23,7 +23,11 @@ local Config = {
     SAVE_DB_INTERVAL = 10, PENDING_FLUSH_THRESHOLD = 50, PENDING_FLUSH_INTERVAL = 60,
     CATALOG_UPDATE_INTERVAL = 60, TIMEZONE_OFFSET = 3 * 3600,
     PRESENCE_HOLD_DELAY = 2, PRESENCE_CONFIRM_DELAY = 1.5,
-    FILES = { players = "/home/players.db", buyCatalog = "/home/buyCatalog.lua", sellCatalog = "/home/sellCatalog.lua", reports = "/home/reports.json", pendingChanges = "/home/pending_changes.lua", catalogVersion = "/home/catalogVersion.dat", setsCatalog = "/home/setsCatalog.lua", setsProgress = "/home/setsProgress.lua" }
+    FILES = { 
+        players = "/home/players.db", buyCatalog = "/home/buyCatalog.lua", sellCatalog = "/home/sellCatalog.lua", 
+        reports = "/home/reports.json", pendingChanges = "/home/pending_changes.lua", catalogVersion = "/home/catalogVersion.dat", 
+        setsCatalog = "/home/setsCatalog.lua", setsProgress = "/home/setsProgress.lua" 
+    }
 }
 
 local State = {
@@ -47,7 +51,7 @@ local State = {
     logMessages = {}, logMessageColor = 0x555555, welcomeLog = {}, syncLogs = {}, MAX_SYNC_LOGS = 4,
     lastPendingFlush = 0, pendingFullReload = false,
     setView = "list", selectedSet = nil, selectedSetItem = nil,
-    helpPage = 1 -- New state for help modal
+    helpPage = 1
 }
 
 local Data = {
@@ -60,14 +64,15 @@ local Data = {
         ["ВСЕ"] = nil, ["AE2"] = { "#AE2" }, ["IC2"] = { "#IC2" }, ["OC | OS"] = { "#OC" },
         ["DraconicEvolution"] = { "#DE" }, ["EnderIO"] = { "#EIO" }, ["Forestry"] = { "#FR" },
         ["MineFactory"] = { "#MFR" }, ["GenDustry | Genetics"] = { "#GS-GD" }, ["DwCity"] = { "#DWC" },
-        ["MetaDrive"] = { "#MD" }, ["Skins"] = { "#SKINS" } },
+        ["MetaDrive"] = { "#MD" }, ["Skins"] = { "#SKINS" } 
+    },
 }
 
 local UI = {
     header = { height = 4, searchX = 2, searchW = 60, clearBtnW = 6, allBtnW = 10, dropdownW = 26, dropdownY = 3 },
     list = { x = 1, y = 5, wRatio = 0.55 },
     bottom = { height = 3, buttonW = 20, spacing = 2 },
-    modal = { smallW = 56, smallH = 10, helpW = 140, helpH = 44 }, -- Added help dimensions
+    modal = { smallW = 56, smallH = 10, helpW = 140, helpH = 44 },
     account = { replenishBtnW = 6 }
 }
 
@@ -84,7 +89,6 @@ local Colors = {
     dropdown_border = 0x00BFFF, dropdown_active = 0x0044AA
 }
 
--- ... (Helper functions formatPrice, cut, formatQtyCompact, etc. remain unchanged) ...
 local function formatPrice(v)
     local n = tonumber(v) or 0
     if n == 0 then return "0" end
@@ -97,11 +101,13 @@ local function formatPrice(v)
     if s:find(".", 1, true) then s = s:gsub("0+$", ""); s = s:gsub("%.$", "") end
     return s
 end
+
 local function cut(s, w)
     s = tostring(s or "")
     if unicode.len(s) > w then s = unicode.sub(s, 1, w - 1) .. "…" end
     return s
 end
+
 local function formatQtyCompact(n)
     n = math.floor(tonumber(n) or 0)
     if n >= 1000000000 then return math.floor(n / 1000000000) .. "kkk"
@@ -109,6 +115,7 @@ local function formatQtyCompact(n)
     elseif n >= 1000 then return math.floor(n / 1000) .. "k"
     else return tostring(n) end
 end
+
 local function formatQtySpaces(n)
     n = math.floor(tonumber(n) or 0)
     local s = tostring(n)
@@ -119,6 +126,7 @@ local function formatQtySpaces(n)
     end
     return s .. out
 end
+
 local function wrapText(text, width)
     local lines = {}
     local cur = ""
@@ -140,6 +148,7 @@ local function wrapText(text, width)
     pushCur()
     return lines
 end
+
 local function lowerStr(s)
     s = tostring(s or "")
     if unicode and unicode.lower then
@@ -151,6 +160,7 @@ local function lowerStr(s)
     s = s:gsub("\208([\144-\175])", function(cc) return "\208" .. string.char(cc:byte() + 32) end)
     return s
 end
+
 local function matchesSearch(nameLower, searchLower)
     if searchLower == "" then return true end
     for token in searchLower:gmatch("%S+") do
@@ -159,7 +169,6 @@ local function matchesSearch(nameLower, searchLower)
     return true
 end
 
--- Forward declarations
 local drawWelcomeScreen, drawMainScreen, drawHeader, drawItemList
 local drawRightPanel, drawBottomBar, drawModal, drawCategoryDropdown
 local markDirty, forceRender
@@ -177,11 +186,13 @@ setProgressOf = function(set)
     if not set then return nil end
     return Data.setsProgress[set.id]
 end
+
 setDispensedFor = function(set, item)
     local pr = Data.setsProgress[set and set.id]
     if not pr or not pr.dispensed then return 0 end
     return math.floor(pr.dispensed[tostring(item.internalName) .. ":" .. tostring(item.damage or 0)] or 0)
 end
+
 setTotalQty = function(set)
     local t = 0
     if set and set.items then
@@ -189,6 +200,7 @@ setTotalQty = function(set)
     end
     return t
 end
+
 setTotalDispensed = function(set)
     local pr = Data.setsProgress[set and set.id]
     if not pr or not pr.dispensed then return 0 end
@@ -196,6 +208,7 @@ setTotalDispensed = function(set)
     for _, v in pairs(pr.dispensed) do t = t + v end
     return math.floor(t)
 end
+
 setIsAvailable = function(set)
     if not set or not set.items then return false end
     if not component.isAvailable("me_interface") then return false end
@@ -221,7 +234,9 @@ local function getRealTimestamp()
     tmpfs.close(handle)
     return tmpfs.lastModified("/time") / 1000 + Config.TIMEZONE_OFFSET
 end
+
 local function getRealTimeString() return os.date("%d.%m.%Y %H:%M:%S", getRealTimestamp()) end
+
 local DEBUG_LOG_PATH = "/home/shop_debug.log"
 local function writeDebugLog(message)
     pcall(function()
@@ -238,6 +253,7 @@ function FileModule.loadLuaFile(path)
     if not ok then writeDebugLog("Ошибка загрузки " .. path .. ": " .. tostring(data)) return nil end
     return data
 end
+
 function FileModule.saveLuaFile(path, data)
     local tmpPath = path .. ".tmp"
     local file = io.open(tmpPath, "w")
@@ -245,6 +261,7 @@ function FileModule.saveLuaFile(path, data)
     file:write("return " .. serialization.serialize(data)); file:close(); fs.rename(tmpPath, path)
     return true
 end
+
 function FileModule.saveLuaList(path, list)
     local tmpPath = path .. ".tmp"
     local file = io.open(tmpPath, "w")
@@ -254,6 +271,7 @@ function FileModule.saveLuaList(path, list)
     file:write("}\n"); file:close(); fs.rename(tmpPath, path)
     return true
 end
+
 function FileModule.saveLuaMap(path, map)
     local tmpPath = path .. ".tmp"
     local file = io.open(tmpPath, "w")
@@ -263,6 +281,7 @@ function FileModule.saveLuaMap(path, map)
     file:write("}\n"); file:close(); fs.rename(tmpPath, path)
     return true
 end
+
 function FileModule.loadJsonFile(path)
     if not fs.exists(path) then return {} end
     local file = io.open(path, "r")
@@ -273,6 +292,7 @@ function FileModule.loadJsonFile(path)
     if ok then return data or {} end
     return {}
 end
+
 function FileModule.saveJsonFile(path, data)
     local file = io.open(path, "w")
     if not file then return false end
@@ -288,11 +308,14 @@ function PlayerModule.load()
     if data and type(data) == "table" then Data.players = data; return true end
     Data.players = {}; return false
 end
+
 function PlayerModule.save()
     if FileModule.saveLuaMap(Config.FILES.players, Data.players) then dbDirty = false; return true end
     return false
 end
+
 function PlayerModule.get(name) if not name then return nil end return Data.players[name] end
+
 function PlayerModule.getOrCreate(name)
     if not Data.players[name] then
         Data.players[name] = { balance = 0, emaBalance = 0, transactions = 0, regDate = getRealTimeString(), banned = false, banReason = "", transactionsList = {} }
@@ -300,6 +323,7 @@ function PlayerModule.getOrCreate(name)
     end
     return Data.players[name]
 end
+
 function PlayerModule.updateBalance(name, coin, ema)
     local player = PlayerModule.getOrCreate(name)
     player.balance = (player.balance or 0) + (coin or 0)
@@ -307,6 +331,7 @@ function PlayerModule.updateBalance(name, coin, ema)
     dbDirty = true
     return player
 end
+
 function PlayerModule.addTransaction(name, txData)
     local player = PlayerModule.getOrCreate(name)
     player.transactions = (player.transactions or 0) + 1
@@ -316,6 +341,7 @@ function PlayerModule.addTransaction(name, txData)
     dbDirty = true
     return player
 end
+
 function PlayerModule.flush()
     if not dbDirty then return end
     if State.TRANSACTION_LOCK then return end
@@ -330,33 +356,42 @@ function CatalogModule.loadVersion()
     else Data.versions = { buy = tonumber(data) or 0, sell = 0, users = 0, sets = 0 } end
     return Data.versions
 end
+
 function CatalogModule.saveVersions()
     FileModule.saveLuaFile(Config.FILES.catalogVersion, Data.versions)
     writeDebugLog("Версии: buy=" .. Data.versions.buy .. " sell=" .. Data.versions.sell .. " users=" .. Data.versions.users .. " sets=" .. Data.versions.sets)
 end
+
 function CatalogModule.loadBuy()
     local data = FileModule.loadLuaFile(Config.FILES.buyCatalog)
     if data and type(data) == "table" then Data.buyCatalog = data; return true end
     Data.buyCatalog = {}; return false
 end
+
 function CatalogModule.saveBuy(items) Data.buyCatalog = items or {}; return FileModule.saveLuaList(Config.FILES.buyCatalog, Data.buyCatalog) end
+
 function CatalogModule.loadSell()
     local data = FileModule.loadLuaFile(Config.FILES.sellCatalog)
     if data and type(data) == "table" then Data.sellCatalog = data; return true end
     Data.sellCatalog = {}; return false
 end
+
 function CatalogModule.saveSell(items) Data.sellCatalog = items or {}; return FileModule.saveLuaList(Config.FILES.sellCatalog, Data.sellCatalog) end
+
 function CatalogModule.loadSets()
     local data = FileModule.loadLuaFile(Config.FILES.setsCatalog)
     if data and type(data) == "table" then Data.setsCatalog = data; return true end
     Data.setsCatalog = {}; return false
 end
+
 function CatalogModule.saveSets(items) Data.setsCatalog = items or {}; return FileModule.saveLuaList(Config.FILES.setsCatalog, Data.setsCatalog) end
+
 function CatalogModule.loadSetsProgress()
     local data = FileModule.loadLuaFile(Config.FILES.setsProgress)
     if data and type(data) == "table" then Data.setsProgress = data; return true end
     Data.setsProgress = {}; return false
 end
+
 function CatalogModule.saveSetsProgress() return FileModule.saveLuaMap(Config.FILES.setsProgress, Data.setsProgress) end
 
 -- ===== REPORTS =====
@@ -381,6 +416,7 @@ local function to_json(val)
     elseif type(val) == "number" then return tostring(val)
     else return "null" end
 end
+
 local function from_json(str)
     if str == nil or type(str) ~= "string" then return str end
     str = str:match("^%s*(.-)%s*$")
@@ -421,7 +457,7 @@ local function from_json(str)
         return result
     end
     if str:sub(1,1) == '"' and str:sub(-1,-1) == '"' then
-        return str:sub(2, -2):gsub('\\"', '"'):gsub('\\\\', '\\'):gsub('\\/', '/'):gsub('\n', '\n'):gsub('\\r', '\r'):gsub('\\t', '\t')
+        return str:sub(2, -2):gsub('\\"', '"'):gsub('\\\\', '\\'):gsub('\\/', '/'):gsub('\\n', '\n'):gsub('\\r', '\r'):gsub('\\t', '\t')
     end
     if str:sub(1,1) == '[' and str:sub(-1,-1) == ']' then
         local arr, depth, start, in_str, esc = {}, 0, 2, false, false
@@ -497,13 +533,16 @@ function PendingModule.load()
     if data and type(data) == "table" then Data.pendingChanges = data; return true end
     Data.pendingChanges = {}; return false
 end
+
 function PendingModule.save() return FileModule.saveLuaFile(Config.FILES.pendingChanges, Data.pendingChanges) end
+
 function PendingModule.add(changeType, data)
     local change = { id = changeType .. "_" .. os.time() .. "_" .. math.random(100000), type = changeType, timestamp = os.time(), data = data }
     table.insert(Data.pendingChanges, change); PendingModule.save()
     if #Data.pendingChanges >= Config.PENDING_FLUSH_THRESHOLD then PendingModule.flush() end
     return change
 end
+
 function PendingModule.flush()
     if #Data.pendingChanges == 0 then return true end
     if flushInProgress then return false end
@@ -521,6 +560,7 @@ end
 -- ===== BUFFER =====
 local Buffer = { currChars = {}, currFg = {}, currBg = {}, dirtyRows = {}, initialized = false }
 local function makeSpaceRow() local t = {}; for x = 1, Config.SCREEN_W do t[x] = " " end; return t end
+
 function Buffer.init()
     if Buffer.initialized then return end
     for y = 1, Config.SCREEN_H do
@@ -529,6 +569,7 @@ function Buffer.init()
     end
     Buffer.initialized = true
 end
+
 function Buffer.clear()
     for y = 1, Config.SCREEN_H do
         Buffer.currChars[y] = makeSpaceRow()
@@ -536,12 +577,14 @@ function Buffer.clear()
         Buffer.dirtyRows[y] = true
     end
 end
+
 function Buffer.set(x, y, char, fg, bg)
     if x < 1 or x > Config.SCREEN_W or y < 1 or y > Config.SCREEN_H then return end
     Buffer.currChars[y][x] = char
     Buffer.currFg[y][x], Buffer.currBg[y][x] = fg or Colors.text_bright, bg or Colors.bg_main
     Buffer.dirtyRows[y] = true
 end
+
 function Buffer.fill(x, y, w, h, char, fg, bg)
     if w <= 0 or h <= 0 then return end
     char, fg, bg = char or " ", fg or Colors.text_bright, bg or Colors.bg_main
@@ -550,6 +593,7 @@ function Buffer.fill(x, y, w, h, char, fg, bg)
         if yy >= 1 and yy <= Config.SCREEN_H then for dx = 0, w - 1 do Buffer.set(x + dx, yy, char, fg, bg) end end
     end
 end
+
 function Buffer.write(x, y, text, fg, bg)
     if y < 1 or y > Config.SCREEN_H or x > Config.SCREEN_W then return end
     text = tostring(text or ""); if text == "" then return end
@@ -559,6 +603,7 @@ function Buffer.write(x, y, text, fg, bg)
     if unicode.len(text) > maxLen then text = unicode.sub(text, 1, maxLen - 1) .. "…" end
     for i = 1, unicode.len(text) do Buffer.set(x + i - 1, y, unicode.sub(text, i, i), fg, bg) end
 end
+
 function Buffer.flush()
     local lastFg, lastBg = nil, nil
     for y = 1, Config.SCREEN_H do
@@ -585,13 +630,17 @@ end
 local PimModule = {}
 local PUSH_DIRECTION = "down"
 local PULL_DIRECTION = "up"
+
 function PimModule.getAddr() for addr in component.list("pim") do return addr end; return nil end
+
 function PimModule.normalizeName(name) if not name then return "" end; return name:match(".*:([^:]+)$") or name end
+
 function PimModule.namesMatch(name1, name2)
     if not name1 or not name2 then return false end
     if name1 == name2 then return true end
     return PimModule.normalizeName(name1) == PimModule.normalizeName(name2)
 end
+
 function PimModule.getPlayer()
     local pimAddr = PimModule.getAddr()
     if not pimAddr then return nil end
@@ -603,12 +652,15 @@ function PimModule.getPlayer()
     if not player then local ok,res = pcall(function() return pim.player end); if ok and res and res ~= "" then player=res end end
     return player
 end
+
 function PimModule.isOwner(playerName) return playerName and State.pimOwner and playerName == State.pimOwner end
+
 function PimModule.ensureValid(expectedPlayer)
     if State.isShuttingDown or not State.currentPlayer or not State.pimOwner or not State.pimActive then return false end
     if expectedPlayer and State.currentPlayer ~= expectedPlayer then return false end
     return true
 end
+
 local function pimPresenceState()
     local addr = PimModule.getAddr()
     if not addr then return "unknown" end
@@ -619,6 +671,7 @@ local function pimPresenceState()
     if r > 0 then return "present" end
     return "absent"
 end
+
 local function readStack(pimAddr, slot)
     local stack = component.invoke(pimAddr, "getStackInSlot", slot)
     if not stack then return nil end
@@ -627,6 +680,7 @@ local function readStack(pimAddr, slot)
     local dmg = stack.damage or stack.dmg or 0
     return { size = size, name = rawName, damage = dmg }
 end
+
 function PimModule.scanInventory(targetName, targetDamage)
     local pimAddr = PimModule.getAddr()
     if not pimAddr then return 0 end
@@ -641,6 +695,7 @@ function PimModule.scanInventory(targetName, targetDamage)
     end
     return total
 end
+
 function PimModule.countOccupiedSlots()
     local pimAddr = PimModule.getAddr()
     if not pimAddr then return 0 end
@@ -648,6 +703,7 @@ function PimModule.countOccupiedSlots()
     for slot = 1, 36 do local st = readStack(pimAddr, slot); if st and st.size > 0 then occupied = occupied + 1 end end
     return occupied
 end
+
 function PimModule.extractToME(targetName, amount, targetDamage)
     local pimAddr = PimModule.getAddr()
     if not pimAddr or amount <= 0 then return 0 end
@@ -674,12 +730,14 @@ end
 local selector = nil
 for addr in component.list("openperipheral_selector") do selector = component.proxy(addr); break end
 if not selector then for addr in component.list("item_selector") do selector = component.proxy(addr); break end end
+
 local function safeSelectorSetSlot(slot, stack)
     if not selector then return false end
     local ok, res = pcall(function() return selector.setSlot(slot, stack) end)
     if not ok then writeDebugLog("Selector: " .. tostring(res)) end
     return ok, res
 end
+
 local function updateSelectorDisplay(item)
     if not selector then return end
     if not item then safeSelectorSetSlot(0, nil); safeSelectorSetSlot(1, nil); return end
@@ -706,11 +764,13 @@ function TransactionModule.lock(txid)
     State.transactionTimeoutShown = false
     return true
 end
+
 function TransactionModule.unlock()
     if not State.TRANSACTION_LOCK then return end
     State.TRANSACTION_LOCK = false; State.activeTransactionId = nil; State.transactionStartTime = 0
     State.transactionTimeoutShown = false; State.lastTransactionEndTime = computer.uptime()
 end
+
 function TransactionModule.checkTimeout()
     if State.TRANSACTION_LOCK and computer.uptime() - State.transactionStartTime > Config.TRANSACTION_TIMEOUT then
         TransactionModule.unlock()
@@ -722,10 +782,12 @@ function TransactionModule.checkTimeout()
         end
     end
 end
+
 local function clampQuantity(qty, maxAvailable)
     if not qty or qty <= 0 or not maxAvailable or maxAvailable <= 0 then return 1 end
     return qty > maxAvailable and maxAvailable or qty
 end
+
 local function craftCap()
     local freeSlots = 36 - PimModule.countOccupiedSlots()
     if freeSlots <= 0 then return 0 end
@@ -739,12 +801,14 @@ local function craftCap()
     end
     return cap
 end
+
 local function buyQtyCap(item)
     if not item then return 0 end
     local stock = item.qty or 0
     if State.currentShopMode == "buy" and acAvailable(item) then return math.max(stock, craftCap()) end
     return stock
 end
+
 local function calculateMaxBuyQuantity()
     local item = State.selectedItem
     if not item then return 1 end
@@ -756,6 +820,7 @@ local function calculateMaxBuyQuantity()
     if cap < 1 then return 1 end
     return cap
 end
+
 local function refreshSellPlayerQty()
     if State.currentShopMode ~= "sell" then return end
     if State.selectedItem then
@@ -763,6 +828,7 @@ local function refreshSellPlayerQty()
         State.sellQuantity = clampQuantity(State.sellQuantity, State.sellPlayerQty)
     else State.sellPlayerQty = 0 end
 end
+
 local function validateTerminalState()
     if State.isShuttingDown then return false, "Терминал завершает работу" end
     if State.serverState.maintenance then return false, "Сервер на обслуживании" end
@@ -771,6 +837,7 @@ local function validateTerminalState()
     if not PimModule.ensureValid(State.currentPlayer) then return false, "Игрок больше не на PIM" end
     return true
 end
+
 function validateBuyRequest()
     local ok, err = validateTerminalState()
     if not ok then return false, err end
@@ -784,6 +851,7 @@ function validateBuyRequest()
     if not component.isAvailable("me_interface") then return false, "ME интерфейс недоступен" end
     return true
 end
+
 function validateSellRequest()
     local ok, err = validateTerminalState()
     if not ok then return false, err end
@@ -795,7 +863,9 @@ function validateSellRequest()
     if State.sellQuantity <= 0 then return false, "Некорректное количество" end
     return true
 end
+
 local function getSelectedItemKey(item) return item and (tostring(item.internalName or "") .. ":" .. tostring(item.damage or 0)) or nil end
+
 local function restoreSelectedItemByKey(selectedKey)
     if not selectedKey then State.selectedItem, State.selectedIndex = nil, 0; return end
     State.selectedItem, State.selectedIndex = nil, 0
@@ -803,6 +873,7 @@ local function restoreSelectedItemByKey(selectedKey)
         if getSelectedItemKey(item) == selectedKey then State.selectedItem, State.selectedIndex = item, i; break end
     end
 end
+
 local function getItemTags(item)
     local tags = {}
     for tag in tostring(item.article or ""):gmatch("([^,]+)") do
@@ -811,12 +882,14 @@ local function getItemTags(item)
     end
     return tags
 end
+
 local function itemInCategory(item, categoryTagList)
     if not categoryTagList then return true end
     local itemTags = getItemTags(item)
     for _, ct in ipairs(categoryTagList) do for _, it in ipairs(itemTags) do if ct == it then return true end end end
     return false
 end
+
 local function applyFilter()
     Data.filteredItems = {}
     local searchLower = lowerStr(State.searchInput or "")
@@ -838,6 +911,7 @@ local function applyFilter()
         State.selectedItem = Data.filteredItems[State.selectedIndex]
     else State.selectedIndex, State.selectedItem = 0, nil end
 end
+
 local function applyBuyCatalog(items)
     local selectedKey = getSelectedItemKey(State.selectedItem)
     Data.buyCatalogDisplay = {}
@@ -849,6 +923,7 @@ local function applyBuyCatalog(items)
     writeDebugLog("Каталог покупок: " .. #Data.buyCatalogDisplay .. " предметов")
     applyFilter(); restoreSelectedItemByKey(selectedKey); updateBuyCatalogFromME()
 end
+
 local function applySellCatalog(items)
     local selectedKey = getSelectedItemKey(State.selectedItem)
     Data.sellCatalogDisplay = {}
@@ -860,6 +935,7 @@ local function applySellCatalog(items)
     writeDebugLog("Каталог продаж: " .. #Data.sellCatalogDisplay .. " предметов")
     applyFilter(); restoreSelectedItemByKey(selectedKey)
 end
+
 function updateBuyCatalogFromME()
     if State.currentShopMode == "sell" then return end
     if not component.isAvailable("me_interface") then return end
@@ -876,6 +952,7 @@ function updateBuyCatalogFromME()
     end
     if changed then applyFilter(); restoreSelectedItemByKey(selectedKey); markDirty("full"); writeDebugLog("ME обновлено") end
 end
+
 local function applySetsFilter()
     Data.setsDisplay = {}
     local searchLower = lowerStr(State.searchInput or "")
@@ -889,13 +966,16 @@ local function applySetsFilter()
         State.selectedSet = Data.setsDisplay[State.selectedIndex]
     else State.selectedIndex, State.selectedSet = 0, nil; State.selectedSetItem = nil end
 end
+
 local function setItemKey(it) return tostring(it.internalName) .. ":" .. tostring(it.damage or 0) end
 local function setProgressGet(setId) if not setId then return nil end return Data.setsProgress[setId] end
+
 local function setDispensedFor(set, it)
     local pr = setProgressGet(set and set.id)
     if not pr or not pr.dispensed then return 0 end
     return math.floor(pr.dispensed[setItemKey(it)] or 0)
 end
+
 local function setTotalDispensed(set)
     local pr = setProgressGet(set and set.id)
     if not pr or not pr.dispensed then return 0 end
@@ -903,11 +983,13 @@ local function setTotalDispensed(set)
     for _, v in pairs(pr.dispensed) do t = t + v end
     return math.floor(t)
 end
+
 local function setTotalQty(set)
     local t = 0
     if set and set.items then for _, it in ipairs(set.items) do t = t + (tonumber(it.qty) or 0) end end
     return t
 end
+
 local function setCompleted(set)
     local pr = setProgressGet(set and set.id)
     if not pr then return false end
@@ -917,6 +999,7 @@ local function setCompleted(set)
     end
     return true
 end
+
 local function meCountOf(internalName, damage)
     if not component.isAvailable("me_interface") then return 0 end
     local me = component.me_interface
@@ -928,6 +1011,7 @@ local function meCountOf(internalName, damage)
     end
     return total
 end
+
 local function setIsAvailable(set)
     if not set or not set.items then return false end
     for _, it in ipairs(set.items) do
@@ -935,6 +1019,7 @@ local function setIsAvailable(set)
     end
     return true
 end
+
 local function loadCatalogPages(catalogType)
     local allItems = {}
     local page, totalPages = 1, 1
@@ -953,6 +1038,7 @@ local function loadCatalogPages(catalogType)
     State.welcomeLog[logIndex] = { message = string.upper(catalogType) .. ": " .. #allItems .. " предм.", color = Colors.success_green }; drawWelcomeScreen()
     return allItems
 end
+
 local function loadSetsPages()
     local allSets = {}
     local page, totalPages = 1, 1
@@ -973,11 +1059,13 @@ local function loadSetsPages()
     State.welcomeLog[logIndex] = { message = "НАБОРЫ: " .. #allSets .. " наборов", color = Colors.success_green }; drawWelcomeScreen()
     return allSets, ver
 end
+
 local function addWelcomeLog(message, color)
     table.insert(State.welcomeLog, { message = message, color = color or Colors.text_main })
     if #State.welcomeLog > 12 then table.remove(State.welcomeLog, 1) end
     drawWelcomeScreen()
 end
+
 local function applyUsersFromServer(users)
     for _, user in ipairs(users) do
         if user.name then
@@ -987,6 +1075,7 @@ local function applyUsersFromServer(users)
     end
     PlayerModule.save()
 end
+
 local function applyCatalogDelta(catalogType, changes, newVersion)
     local currentData = catalogType == "buy" and Data.buyCatalog or Data.sellCatalog
     local saveFunc = catalogType == "buy" and CatalogModule.saveBuy or CatalogModule.saveSell
@@ -1013,6 +1102,7 @@ local function applyCatalogDelta(catalogType, changes, newVersion)
     if catalogType == "buy" then applyBuyCatalog(newData) else applySellCatalog(newData) end
     addWelcomeLog(string.upper(catalogType) .. ": +" .. addCnt .. " / изм. " .. updCnt .. " / удал. " .. delCnt, Colors.success_green)
 end
+
 local function applySetsDelta(changes, newVersion)
     local currentData = Data.setsCatalog
     local index = {}
@@ -1045,6 +1135,7 @@ local function applySetsDelta(changes, newVersion)
     if State.currentShopMode == "sets" then applySetsFilter() end
     addWelcomeLog("НАБОРЫ: +" .. addCnt .. " / изм. " .. updCnt .. " / удал. " .. delCnt, Colors.success_green)
 end
+
 local function fullReloadCatalogs(serverBuy, serverSell)
     addWelcomeLog("Полная загрузка BUY...", Colors.accent_cyan)
     local buyItems = loadCatalogPages("buy")
@@ -1054,11 +1145,13 @@ local function fullReloadCatalogs(serverBuy, serverSell)
     if sellItems then CatalogModule.saveSell(sellItems); Data.versions.sell = serverSell; applySellCatalog(sellItems) else addWelcomeLog("Ошибка загрузки SELL", Colors.error_red) end
     CatalogModule.saveVersions()
 end
+
 local function syncEnd(result, source)
     State.syncInProgress = false
     if source ~= "player" and not State.pimActive then State.welcomeLog = {}; drawWelcomeScreen() end
     return result
 end
+
 local function syncCatalogsIfNeeded(source)
     if State.syncInProgress then return "busy" end
     State.syncInProgress = true
@@ -1109,6 +1202,7 @@ local function syncCatalogsIfNeeded(source)
     addWelcomeLog("Обновление завершено", Colors.success_green)
     return syncEnd("updated", source)
 end
+
 local function loadFullInit()
     writeDebugLog("Первый запуск: загрузка данных с сервера...")
     table.insert(State.welcomeLog, { message = "Первичная синхронизация...", color = Colors.warning }); drawWelcomeScreen()
@@ -1144,7 +1238,9 @@ local function loadFullInit()
     for _ in pairs(Data.players) do userCount = userCount + 1 end
     table.insert(State.welcomeLog, { message = "Готово! Buy: " .. buyCount .. ", Sell: " .. sellCount .. ", Sets: " .. #Data.setsCatalog .. ", Users: " .. userCount, color = Colors.success_green }); drawWelcomeScreen()
 end
+
 local function flushSessionToServer() PendingModule.flush(); PlayerModule.flush(); CatalogModule.saveSetsProgress() end
+
 local function safeOpenModal(kind, data)
     local ok, err = pcall(function()
         State.modalState.active = true; State.modalState.kind = kind; State.modalState.data = data or {}
@@ -1156,28 +1252,34 @@ local function safeOpenModal(kind, data)
     end
     forceRender()
 end
+
 local function openErrorModal(title, text) safeOpenModal("error", { title = title or "Ошибка", text = text or "Неизвестная ошибка" }) end
 local function openInfoModal(title, lines) safeOpenModal("info", { title = title or "Информация", lines = lines or {} }) end
+
 local function closeModal()
     State.modalState.active = false; State.modalState.kind = nil; State.modalState.data = nil; State.modalData = nil
     State.currentScreen = State.pimActive and "shop" or "welcome"
     forceRender()
 end
+
 local function openReportModal()
     State.modalState.active = true; State.modalState.kind = "report_select"; State.modalState.data = {}
     State.modalData = State.modalState.data; State.currentScreen = "modal"; forceRender()
 end
+
 local function openReportTypeForm(reportKind)
     State.modalState.active = true; State.modalState.kind = "report_form"
     State.modalState.data = { type = reportKind, text = "", item_id = "", comment = "", _active_field = "item" }
     State.modalData = State.modalState.data; State.currentScreen = "modal"; forceRender()
 end
+
 local function openMyReports()
     local result = HttpModule.request("oc_get_my_reports", { terminalId = Config.TERMINAL_ID, player = State.currentPlayer or "" })
     State.modalState.active = true; State.modalState.kind = "my_reports"
     State.modalState.data = { reports = (result and result.status == "ok" and result.reports) or {} }
     State.modalData = State.modalState.data; State.currentScreen = "modal"; forceRender()
 end
+
 local function submitReport()
     local data = State.modalState.data
     if not data or not data.type then return end
@@ -1188,6 +1290,7 @@ local function submitReport()
         safeOpenModal("info", { title = "Репорт отправлен", lines = { "Спасибо! Ваш репорт #" .. (result.reportId or "") .. " принят.", "Мы рассмотрим его в ближайшее время." } })
     else safeOpenModal("error", { title = "Ошибка отправки", text = "Не удалось отправить репорт. Попробуйте позже." }) end
 end
+
 local function checkRewardedReports()
     if not State.currentPlayer then return end
     local result = HttpModule.request("oc_get_rewarded_reports", { terminalId = Config.TERMINAL_ID, player = State.currentPlayer })
@@ -1205,20 +1308,24 @@ local function checkRewardedReports()
         markDirty("right")
     end
 end
+
 local function clearAllText() State.logMessages = {}; State.welcomeLog = {}; State.syncLogs = {}; Buffer.clear() end
 local function setLogMessage(text, color) State.logMessages = {}; if text and text ~= "" then table.insert(State.logMessages, {text = text, color = color or Colors.text_dark, gap = 1}) end; markDirty("right") end
 local function addLogMessage(text, color) if text and text ~= "" then table.insert(State.logMessages, {text = text, color = color or Colors.text_dark, gap = 1}) end; markDirty("right") end
+
 local function addLogSegs(segs)
     local plain = ""
     for _, s in ipairs(segs) do plain = plain .. s[1] end
     table.insert(State.logMessages, { segs = segs, text = plain, gap = 1 })
     markDirty("right")
 end
+
 local function clearLog() State.logMessages = {} end
 local function scheduleClearLog(delay) event.timer(delay or 5, function() clearLog(); markDirty("right"); return false end) end
 local function fillBox(x, y, w, h, bg, ch) Buffer.fill(x, y, w, h, ch or " ", Colors.text_bright, bg or Colors.bg_main) end
 local function writeText(x, y, text, fg, bg) Buffer.write(x, y, text, fg or Colors.text_bright, bg or Colors.bg_main) end
 local function drawCenteredText(y, text, fg, bg) text = tostring(text or ""); Buffer.write(math.floor((Config.SCREEN_W - unicode.len(text)) / 2) + 1, y, text, fg or Colors.text_bright, bg or Colors.bg_main) end
+
 local function drawBox(x, y, w, h, fg, bg)
     if w < 2 or h < 2 then return end
     fg, bg = fg or Colors.line, bg or Colors.bg_main
@@ -1226,11 +1333,13 @@ local function drawBox(x, y, w, h, fg, bg)
     for r = y + 1, y + h - 2 do Buffer.write(x, r, "│", fg, bg); Buffer.write(x + w - 1, r, "│", fg, bg) end
     Buffer.write(x, y + h - 1, "└" .. string.rep("─", w - 2) .. "┘", fg, bg)
 end
+
 local function drawButton(x, y, w, h, text, bg, fg, id)
     fillBox(x, y, w, h, bg or Colors.bg_button)
     writeText(x + math.floor((w - unicode.len(text)) / 2), y + math.floor((h - 1) / 2), text, fg or Colors.text_bright, bg or Colors.bg_button)
     if id then table.insert(State.buttons, { id = id, x = x, y = y, w = w, h = h }) end
 end
+
 local function isButtonClicked(btn, x, y) return y >= btn.y and y < btn.y + btn.h and x >= btn.x and x < btn.x + btn.w end
 
 -- ===== DRAW MODAL (UPDATED WITH HELP) =====
@@ -1238,40 +1347,34 @@ local function drawModal()
     if not State.modalState.active then return end
     local kind = State.modalState.kind
     local data = State.modalState.data or {}
-
+    
     -- Help Modal Specifics
     if kind == "help" then
         local modalW, modalH = UI.modal.helpW, UI.modal.helpH
         local modalX = math.floor((Config.SCREEN_W - modalW) / 2)
         local modalY = math.floor((Config.SCREEN_H - modalH) / 2)
-
         Buffer.fill(modalX, modalY, modalW, modalH, " ", Colors.text_bright, Colors.bg_modal)
         drawBox(modalX, modalY, modalW, modalH, Colors.accent_cyan, Colors.bg_modal)
-
-        -- Title based on page
+        
         local titles = {
             "КАК РАБОТАТЬ С МАГАЗИНОМ",
             "РАБОТА С БАЛАНСАМИ МАГАЗИНА",
             "ПРОЦЕСС ПОКУПКИ/ПРОДАЖИ",
-            "АКТОКРАФ ПРЕДМЕТОВ",
+            "АВТОКРАФТ ПРЕДМЕТОВ",
             "СИСТЕМА СКИДОК, НАБОРОВ И РЕПОРТОВ"
         }
         local title = titles[State.helpPage] or "HELP INFO:"
         drawCenteredText(modalY + 1, title, Colors.accent_cyan, Colors.bg_modal)
-
-        -- Content Area
+        
         local contentY = modalY + 4
-        local contentW = modalW - 4
         local lines = {}
-
-        -- Page Content Logic
+        
         if State.helpPage == 1 then
             lines = {
                 { text = "--- НАЧАЛО ТОРГОВОЙ СЕССИИ ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Встаньте на PIM, дождитесь авторизации, синхронизации каталогов и загрузки магазина.", color = Colors.text_main, center = true },
                 { text = "   Пока вы стоите на PIM, магазин закрепляет текущую сессию за вами.", color = Colors.text_gray, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "", color = Colors.text_main },
                 { text = "--- КАТАЛОГ ТОВАРОВ ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
@@ -1280,12 +1383,10 @@ local function drawModal()
                 { text = "Поиск товаров не требует нажатия на поле ввода, сразу после загрузки можно вводить название искомого предмета.", color = Colors.text_main, center = true },
                 { text = "Имеется возможность сортировать каталог по конкретному моду.", color = Colors.text_main, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
-                { text = "--- ЧТО ТАКОЕ COINA & EMA ---", color = Colors.accent_cyan, center = true },
+                { text = "--- ЧТО ТАКОЕ COINS & EMA ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "COINS - внутренняя валюта магазина (эквивалент 1 железного слитка)", color = Colors.accent_cyan, center = true },
                 { text = "EM - эквивалент игровой валюты сервера, ЭМов.", color = Colors.tomato, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "", color = Colors.text_main },
                 { text = "--- КОЛИЧЕСТВО ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
@@ -1293,13 +1394,11 @@ local function drawModal()
                 { text = "Введите число. Магазин сразу пересчитает итоговую стоимость.", color = Colors.text_main, center = true },
                 { text = "Кнопка [ МАКС ] вводит максимальное количество предметов, с учётом доступного баланса и свободного места в инвентаре.", color = Colors.text_main, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
                 { text = "--- КАК РАБОТАЕТ PIM ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Экран и клавиатура принимают управление только от владельца текущей PIM-сессии.", color = Colors.tomato, center = true },
                 { text = "Если сойти с PIM, сессия закрывается и магазин возвращается в режим ожидания.", color = Colors.text_main, center = true },
                 { text = "Не сходите с PIM во время покупки, пополнения, выдачи набора или автокрафта.", color = Colors.text_main, center = true },
-                { text = "", color = Colors.text_main },
             }
         elseif State.helpPage == 2 then
             lines = {
@@ -1307,20 +1406,17 @@ local function drawModal()
                 { text = "", color = Colors.text_main },
                 { text = "TRADE MARKET использует 2 валюты для оплаты товаров: COINS & EM.", color = Colors.text_main, center = true },
                 { text = "Предметы могут продаваться как отдельно за COINS, так и за EMA, а также могут стоить COINS и EMA одновременно.", color = Colors.text_main, center = true },
-                { text = "Баланс COINS & EMA всегда всегда доступен в разделе АККАУНТА.", color = Colors.accent_cyan, center = true },
-                { text = "", color = Colors.text_main },
+                { text = "Баланс COINS & EMA всегда доступен в разделе АККАУНТА.", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "--- ЧТО НУЖНО ДЛЯ ПОКУПКИ ПРЕДМЕТА ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Для покупки предмета на балансе аккаунта должно быть достаточное количество COINS и/или EMA.", color = Colors.text_main, center = true },
                 { text = "Итоговая стоимость за покупку формируется из расчёта: цена за один предмет * количество покупаемых предметов.", color = Colors.text_main, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
                 { text = "--- КАК ПОПОЛНЯЕТСЯ БАЛАНС ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Баланс магазина можно пополнить в разделе [ ПОПОЛНЕНИЕ ], продав скупаемый магазином предмет.", color = Colors.text_main, center = true },
                 { text = "У каждого предмета есть цена, за которую магазин готов его купить у игрока, пополнив тем самым баланс пользователя.", color = Colors.text_main, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "", color = Colors.text_main },
                 { text = "--- АККАУНТ ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
@@ -1329,7 +1425,6 @@ local function drawModal()
             }
         elseif State.helpPage == 3 then
             lines = {
-                { text = "", color = Colors.text_main },
                 { text = "--- ПОКУПКА ТОВАРА ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "На странице [ Покупки ], выбирая товар вы можете видеть его наличие в МЭ магазина.", color = Colors.text_main, center = true },
@@ -1337,7 +1432,6 @@ local function drawModal()
                 { text = "Нажимая [ Купить ] магазин проверяет баланс, сессию и свободное место в инвентаре игрока.", color = Colors.text_main, center = true },
                 { text = "После ряда успешных проверок магазин списывает стоимость покупаемого предмета и выдает его игроку через PIM.", color = Colors.text_main, center = true },
                 { text = "Если по какой-то причине будет выдано меньше предметов чем покупалось, магазин спишет оплату только за фактически выданные предметы.", color = Colors.success_green, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "", color = Colors.text_main },
                 { text = "--- ПОПОЛНЕНИЕ / ПРОДАЖА ПРЕДМЕТОВ ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
@@ -1356,12 +1450,10 @@ local function drawModal()
                 { text = "Автокрафт позволяет покупать отсутствующие в наличие товары.", color = Colors.text_main, center = true },
                 { text = "Главным условием для этого является наличие рецепта для крафта в МЭ магазина.", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
                 { text = "--- КАК ПОНЯТЬ, ЧТО АВТОКРАФТ ДОСТУПЕН ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "В правом информационном блоке ПОКУПАЕМЫЙ ПРЕДМЕТ должен быть статус АВТОКРАФТ: ДОСТУПЕН.", color = Colors.accent_cyan, center = true },
                 { text = "При вводе количества предметов, превышающих доступное в МЭ количество, появится кнопка [ЗАКАЗАТЬ КРАФТ].", color = Colors.text_main, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "", color = Colors.text_main },
                 { text = "--- ЧТО ПРОИСХОДИТ ПОСЛЕ НАЖАТИЯ ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
@@ -1370,14 +1462,12 @@ local function drawModal()
                 { text = "Кнопка [НАЧАТЬ КРАФТ] отправляет запрос на крафт в МЭ сеть.", color = Colors.text_main, center = true },
                 { text = "Как только предметы будут созданы начнётся процесс выдачи.", color = Colors.success_green, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
                 { text = "--- ЛОГИРОВАНИЕ ПРОЦЕССА ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Весь процесс крафта логируется в соответствующем информационном блоке.", color = Colors.text_main, center = true },
                 { text = "Как только готовые предметы попадают в сеть, происходит оплата и выдача.", color = Colors.text_main, center = true },
                 { text = "Если у игрока закончится место в инвентаре в момент выдачи, оставшиеся предметы будут доступны для покупки в магазине.", color = Colors.text_main, center = true },
                 { text = "При частичной выдачи оплата будет произведено за то количество предметов, которое фактически получил игрок.", color = Colors.success_green, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "", color = Colors.text_main },
                 { text = "--- ЕСЛИ УЙТИ С PIM ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
@@ -1389,13 +1479,6 @@ local function drawModal()
             }
         elseif State.helpPage == 5 then
             lines = {
-                { text = "", color = Colors.text_main },
-                { text = "--- СИСТЕМА СКИДОК ---", color = Colors.accent_cyan, center = true },
-                { text = " --------- ", color = Colors.text_main, center = true },
-                { text = " --------- ", color = Colors.text_main, center = true },
-                { text = " --------- ", color = Colors.text_main, center = true },
-                { text = " --------- ", color = Colors.success_green, center = true },
-                { text = "", color = Colors.text_main },
                 { text = "--- КВЕСТЫ И НАБОРЫ ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "В разделе [ Наборы | Квесты ], вы можете купить готовые наборы предметов или квесты (испытания).", color = Colors.text_main, center = true },
@@ -1406,7 +1489,6 @@ local function drawModal()
                 { text = "Если у вас закончилось место или вы случайно сошли с PIM в этом нет ничего страшного.", color = Colors.text_main, center = true },
                 { text = "Освободите место в инвентаре и вернитесь к странице набора и продолжите выдачу предметов, пока не заберёте весь набор целиком.", color = Colors.text_main, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
                 { text = "--- ОШИБКИ И БАГИ МАГАЗИНА ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Магазин всё ещё находится в открытом [BETA].", color = Colors.tomato, center = true },
@@ -1414,16 +1496,13 @@ local function drawModal()
                 { text = "В магазине присутствует активная система репортов и вознаграждений за них.", color = Colors.text_main, center = true },
                 { text = "Вы можете с ней ознакомиться нажав на кнопку [REPORTS] в правой нижней части магазина.", color = Colors.text_main, center = true },
                 { text = "", color = Colors.text_main },
-                { text = "", color = Colors.text_main },
                 { text = "--- СИСТЕМА БЛОКИРОВОК ---", color = Colors.accent_cyan, center = true },
                 { text = "", color = Colors.text_main },
                 { text = "Если Вы будете пытаться как либо навредить магазину, Вы будете незамедлительно заблокированы.", color = Colors.text_main, center = true },
                 { text = "Если ваш аккаунт заблокирован, вы более не можете пользоваться магазином и всеми его функциями.", color = Colors.tomato, center = true },
-                { text = "", color = Colors.text_main },
             }
         end
-
-        -- Render Lines
+        
         for i, line in ipairs(lines) do
             if i <= modalH - 6 then
                 if line.center then
@@ -1433,29 +1512,21 @@ local function drawModal()
                 end
             end
         end
-
-        -- Footer / Page Indicator
+        
         local footerY = modalY + modalH - 3
         drawCenteredText(footerY, "СТРАНИЦА " .. State.helpPage .. " / 5", Colors.text_gray, Colors.bg_modal)
-
-        -- Buttons
+        
         local btnY = modalY + modalH - 2
         local btnW = 12
         local spacing = 4
         local totalW = (btnW * 3) + (spacing * 2)
         local startX = modalX + math.floor((modalW - totalW) / 2)
-
-        -- Prev Button
+        
         local prevColor = State.helpPage > 1 and Colors.purple or Colors.inactive
         drawButton(startX, btnY, btnW, 1, "[ < НАЗАД ]", prevColor, Colors.white, "help_prev")
-
-        -- Close Button
         drawButton(startX + btnW + spacing, btnY, btnW + 4, 1, "[ ЗАКРЫТЬ ]", Colors.tomato, Colors.white, "help_close")
-
-        -- Next Button
         local nextColor = State.helpPage < 5 and Colors.success_green or Colors.inactive
         drawButton(startX + (btnW * 2) + (spacing * 2) + 4, btnY, btnW, 1, "[ ДАЛЕЕ > ]", nextColor, Colors.white, "help_next")
-
         return
     end
 
@@ -1465,11 +1536,9 @@ local function drawModal()
     elseif kind == "report_form" then modalW, modalH = 60, 16
     elseif kind == "my_reports" then modalW, modalH = 90, 26
     elseif kind == "insufficient" then modalW, modalH = 60, 12 end
-
     local modalX = math.floor((Config.SCREEN_W - modalW) / 2)
     local modalY = math.floor((Config.SCREEN_H - modalH) / 2)
     Buffer.fill(modalX, modalY, modalW, modalH, " ", Colors.text_bright, Colors.bg_modal)
-
     local borderColor, title = Colors.error_red, "УВЕДОМЛЕНИЕ"
     if kind == "error" then borderColor, title = Colors.error_red, data.title or "ОШИБКА"
     elseif kind == "insufficient" then borderColor, title = Colors.warning, "НЕДОСТАТОЧНО СРЕДСТВ"
@@ -1479,10 +1548,9 @@ local function drawModal()
     elseif kind == "report_select" then borderColor, title = Colors.tomato, "НАШЁЛ ОШИБКУ?"
     elseif kind == "report_form" then borderColor = Colors.tomato; title = data.type == "price" and "НЕКОРРЕКТНАЯ ЦЕНА" or (data.type == "missing_item" and "ОТСУТСТВУЕТ ПРЕДМЕТ" or "БАГ | ПРЕДЛОЖЕНИЕ")
     elseif kind == "my_reports" then borderColor, title = Colors.accent_cyan, "МОИ РЕПОРТЫ" end
-
     drawBox(modalX, modalY, modalW, modalH, borderColor, Colors.bg_modal)
     if title then drawCenteredText(modalY + 1, title, borderColor, Colors.bg_modal) end
-
+    
     if kind == "reward" then
         local icon = "✔ "
         local head = "РЕПОРТ #" .. tostring(data.reportId) .. " РАССМОТРЕН!"
@@ -1598,7 +1666,7 @@ local function drawModal()
             local rx = modalX + 38
             if rewarded and (coin > 0 or ema > 0) then
                 if coin > 0 then local s1 = formatPrice(coin) .. " COINS"; writeText(rx, ry, s1, Colors.accent_cyan, Colors.bg_modal); rx = rx + unicode.len(s1)
-                if ema > 0 then writeText(rx, ry, " & ", Colors.white, Colors.bg_modal); rx = rx + 3; writeText(rx, ry, formatPrice(ema) .. " EM", Colors.orange, Colors.bg_modal) end
+                    if ema > 0 then writeText(rx, ry, " & ", Colors.white, Colors.bg_modal); rx = rx + 3; writeText(rx, ry, formatPrice(ema) .. " EM", Colors.orange, Colors.bg_modal) end
                 elseif ema > 0 then writeText(rx, ry, formatPrice(ema) .. " EM", Colors.orange, Colors.bg_modal) end
             else writeText(rx, ry, "Отсутствует", Colors.text_gray, Colors.bg_modal) end
             writeText(modalX + 65, ry, cut(r.admin_comment or "", modalW - 67), Colors.text_main, Colors.bg_modal)
@@ -1631,6 +1699,7 @@ local function drawCategoryDropdown()
         table.insert(State.buttons, { id = "category_" .. i, x = dropdownX + 1, y = dropdownY + 1 + i, w = dropdownW - 2, h = 1, category = catName })
     end
 end
+
 local function drawHeader()
     Buffer.fill(1, 1, Config.SCREEN_W, 3, " ", Colors.text_bright, Colors.bg_header)
     local searchX, searchW = UI.header.searchX, UI.header.searchW
@@ -1660,6 +1729,7 @@ local function drawHeader()
     Buffer.fill(1, 4, listW, 1, " ", Colors.text_bright, Colors.line)
     Buffer.fill(listW + 2, 4, Config.SCREEN_W - listW - 1, 1, " ", Colors.text_bright, Colors.line)
 end
+
 local function drawItemList()
     local listX, listY = UI.list.x, UI.list.y
     local listW = math.floor(Config.SCREEN_W * UI.list.wRatio)
@@ -1785,6 +1855,7 @@ local function drawItemList()
         else Buffer.fill(listX + 1, y, listW - 2, 1, " ", Colors.text_bright, Colors.bg_main) end
     end
 end
+
 local function drawLogBlock(panelX, panelW, logY, logH)
     drawBox(panelX, logY, panelW, logH, Colors.line, Colors.bg_main)
     writeText(panelX + 2, logY + 1, "ЛОГИРОВАНИЕ", Colors.cyan, Colors.bg_main)
@@ -1820,6 +1891,7 @@ local function drawLogBlock(panelX, panelW, logY, logH)
         if k < #sel then y = y + 1 + (e.gap or 1) else y = y + 1 end
     end
 end
+
 local function drawAutocraftBox(panelX, panelY, panelW, topH, job)
     drawBox(panelX, panelY, panelW, topH, Colors.line, Colors.bg_main)
     local title = "АВТОКРАФТ"
@@ -1856,6 +1928,7 @@ local function drawAutocraftBox(panelX, panelY, panelW, topH, job)
         writeText(panelX + math.floor((panelW - unicode.len(warn)) / 2), panelY + topH - 2, warn, Colors.error_red, Colors.bg_main)
     end
 end
+
 local function drawItemBox(panelX, panelY, panelW, topH, item)
     drawBox(panelX, panelY, panelW, topH, Colors.line, Colors.bg_main)
     local title = State.currentShopMode == "buy" and "ПОКУПАЕМЫЙ ПРЕДМЕТ" or "ПРОДАЖА ПРЕДМЕТА"
@@ -1941,6 +2014,7 @@ local function drawItemBox(panelX, panelY, panelW, topH, item)
     elseif totalEma > 0 then writeText(totalX, totalY, totalEmaStr .. " EM", Colors.tomato, Colors.bg_main)
     else writeText(totalX, totalY, "Бесплатно", Colors.text_bright, Colors.bg_main) end
 end
+
 local function drawSetBox(panelX, panelY, panelW, topH, set)
     drawBox(panelX, panelY, panelW, topH, Colors.line, Colors.bg_main)
     local title = "ПОКУПАЕМЫЙ НАБОР"
@@ -1972,6 +2046,7 @@ local function drawSetBox(panelX, panelY, panelW, topH, set)
     local bx = panelX + math.floor((panelW - bw) / 2)
     drawButton(bx, panelY + topH - 3, bw, 1, "[ Перейти к набору ]", Colors.purple, Colors.white, "set_open")
 end
+
 local function drawSetContentsBox(panelX, panelY, panelW, topH, set)
     drawBox(panelX, panelY, panelW, topH, Colors.line, Colors.bg_main)
     local title = "СОДЕРЖИМОЕ НАБОРА"
@@ -2034,6 +2109,7 @@ local function drawSetContentsBox(panelX, panelY, panelW, topH, set)
         else writeText(totalX, totalY, "Бесплатно", Colors.text_bright, Colors.bg_main) end
     end
 end
+
 local function drawAccBox(panelX, panelW, accY, accH)
     fillBox(panelX, accY, panelW, accH, Colors.bg_panel)
     drawBox(panelX, accY, panelW, accH, Colors.line, Colors.bg_panel)
@@ -2055,6 +2131,7 @@ local function drawAccBox(panelX, panelW, accY, accH)
         writeText(panelX + 2 + unicode.len("Транзакции: "), accY + 7, tostring(State.currentSession.transactions or 0), Colors.accent_cyan, Colors.bg_panel)
     else writeText(panelX + 2, accY + 5, "Не авторизован", Colors.error_red, Colors.bg_panel) end
 end
+
 local function drawRightPanel()
     local panelX = math.floor(Config.SCREEN_W * UI.list.wRatio) + 2
     local panelW = Config.SCREEN_W - (math.floor(Config.SCREEN_W * UI.list.wRatio) + 2)
@@ -2091,6 +2168,7 @@ local function drawRightPanel()
     drawLogBlock(panelX, panelW, logY, logH)
     drawAccBox(panelX, panelW, accY, accH)
 end
+
 local function drawBottomBar()
     local y = Config.SCREEN_H - 2
     Buffer.fill(1, y, Config.SCREEN_W, 3, " ", Colors.text_bright, Colors.bg_panel)
@@ -2098,11 +2176,11 @@ local function drawBottomBar()
     local btnW, btnH, spacing = UI.bottom.buttonW, 1, UI.bottom.spacing
     local totalWidth = (btnW * 3) + (spacing * 2)
     local startX = math.floor((Config.SCREEN_W - totalWidth) / 2)
-
+    
     -- Help Button (Left)
     local helpBtnW = 18
     drawButton(2, y + 1, helpBtnW, btnH, "[ ? Нужна помощь? ]", Colors.accent_cyan, Colors.white, "help_open")
-
+    
     local buyColor = State.currentShopMode == "buy" and Colors.success_green or Colors.bg_button
     drawButton(startX, y + 1, btnW, btnH, "[ Покупки ]", buyColor, Colors.white, "page_buy")
     local sellX = startX + btnW + spacing
@@ -2111,23 +2189,22 @@ local function drawBottomBar()
     local questX = sellX + btnW + spacing
     local questColor = State.currentShopMode == "sets" and Colors.purple or Colors.bg_button
     drawButton(questX, y + 1, btnW, btnH, "[ Наборы | Квесты ]", questColor, Colors.white, "page_quests")
-
     writeText(Config.SCREEN_W - 20, Config.SCREEN_H, "v 6.10.4", Colors.text_dark, Colors.bg_panel)
     local reportBtnW = 18
     drawButton(Config.SCREEN_W - reportBtnW - 2, Config.SCREEN_H - 2, reportBtnW, 1, "[ Нашёл ошибку ]", Colors.tomato, Colors.white, "report_bug")
 end
+
 function drawWelcomeScreen()
     Buffer.clear()
     State.buttons = {}
     drawBox(1, 1, Config.SCREEN_W, Config.SCREEN_H, Colors.line, Colors.bg_main)
-
     local titleLines = {
-        "████████╗██████╗  █████╗ ██████╗ ███████╗", "███╗   ███╗ █████╗ ██████╗ ██╗  ██╗███████╗████████╗",
-        "╚══██╔══╝██╔══██╗██╔══██╗██╔══██╗██ ════╝", "████╗ ████║██╔══██╗██╔══██╗██║ ██╔╝██╔════╝╚══██╔══╝",
-        "   ██║   ██████╔╝███████║██║  ██║███████╗", "██╔████╔██║███████║██████╔╝█████╔╝ █████╗     ██║   ",
-        "   ██║   ██╔══██╗██╔══██║██║  ██║██ ═══=║", "██║╚██╔╝██║██╔══██║██╔══██╗██╔═██╗ ██╔══╝     ██║   ",
-        "   ██║   ██║  ██║██║  ██║██████╔╝███████║", "██║ ╚═╝ ██║██║  ██║██║  ██║██║  ██╗███████╗   ██║   ",
-        "   ╚═╝   ╚═╝  ╚═╝╚═╝  ╚═╝╚═════╝ ╚══════╝", "╚═╝     ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝   ",}
+        "████████╗██████╗  █████╗ ██████╗ ███████╗   ███╗   ███╗ █████╗ ██████╗ ██╗  ██╗███████╗████████╗",
+        "╚══██╗██║██╔══██╗██╔══██╗██╔══██╗██╔════╝   ████╗ ████║██╔══██╗██╔══██╗██║ ██╝██╔════╝══██╔╝",
+        "   ██║   ██████╔╝███████║██║  ██║█████╗     ████████║███████║██████╔╝█████╔╝ █████╗     ██║   ",
+        "   ██║   ██╔══██╗██╔══██║██║  ██║██╔══╝     ██║██╝██║██╔══██║██╔══██╗██╔═██╗ ██╔══╝     ██║   ",
+        "   ██║   ██║  ██║██║  ██║██████╔╝███████╗   ██║ ╚═╝ ██║██║  ██║██║  ██║██║  ██╗███████╗   ██║   ",
+        "   ╚═╝   ╚═╝  ╚═╝═╝  ╚═╝═════╝ ╚══════╝   ╚═╝     ╚═╝╚═╝  ╚═╝═╝  ╚═╝══════╝   ╚═╝   " }
     for i, line in ipairs(titleLines) do writeText(math.floor((Config.SCREEN_W - unicode.len(line)) / 2) + 1, 12 + i - 1, line, Colors.line, Colors.bg_main) end
     if State.syncInProgress then
         drawCenteredText(22, "⏳ Идёт синхронизация с сервером...", Colors.warning, Colors.bg_main)
@@ -2161,6 +2238,7 @@ function drawWelcomeScreen()
     Buffer.flush()
     State.screenInitialized = true
 end
+
 local function drawMainScreen()
     if State.currentScreen == "welcome" then drawWelcomeScreen(); return end
     State.buttons = {}
@@ -2174,6 +2252,7 @@ local function drawMainScreen()
     Buffer.flush()
     State.lastRendered = true
 end
+
 function markDirty(part)
     if not State.screenInitialized then return end
     State.guiDirty = true
@@ -2189,6 +2268,7 @@ function markDirty(part)
         end)
     end
 end
+
 function forceRender()
     if not State.screenInitialized then return end
     State.guiDirty = false; State.pendingRenderPart = "full"
@@ -2202,6 +2282,7 @@ local function acKey(name, dmg)
     if n ~= "" and not n:find(":", 1, true) then n = "minecraft:" .. n end
     return n .. ":" .. tostring(dmg or 0)
 end
+
 local function callMethod(obj, name)
     if type(obj) ~= "table" then return nil end
     local m = obj[name]
@@ -2210,6 +2291,7 @@ local function callMethod(obj, name)
     if ok then return r end
     return nil
 end
+
 local function cancelCraftReq(req)
     if not req then return false end
     pcall(function() req.cancel() end)
@@ -2223,11 +2305,13 @@ local function cancelCraftReq(req)
     writeDebugLog("⚠️ Отмену крафта не удалось подтвердить")
     return false
 end
+
 local function acFullName(raw)
     local n = tostring(raw or "")
     if n ~= "" and not n:find(":", 1, true) then n = "minecraft:" .. n end
     return n
 end
+
 local function acStackOf(c)
     if type(c) ~= "table" then return nil end
     if c.getItemStack ~= nil then
@@ -2239,6 +2323,7 @@ local function acStackOf(c)
     if type(c.name) == "string" then return c end
     return nil
 end
+
 local function acDoProbe(item)
     if not item then return end
     local k = acKey(item.internalName, item.damage or 0)
@@ -2258,6 +2343,7 @@ local function acDoProbe(item)
     State.autocraftCraftablesDirty = true
     writeDebugLog("🔎 Probe " .. full .. " => шаблон найден")
 end
+
 local function acProbeItem(item)
     if not item then return end
     local k = acKey(item.internalName, item.damage or 0)
@@ -2267,11 +2353,14 @@ local function acProbeItem(item)
     end
     table.insert(State.acProbeQueue, { internalName = item.internalName, damage = item.damage or 0 })
 end
+
 acAvailable = function(item)
     if not item then return false end
     return type(State.acCraftCache[acKey(item.internalName, item.damage or 0)]) == "table"
 end
+
 acCanCraft = acAvailable
+
 acStatusOf = function(item)
     if not item then return "unknown" end
     local v = State.acCraftCache[acKey(item.internalName, item.damage or 0)]
@@ -2279,12 +2368,14 @@ acStatusOf = function(item)
     elseif v == false then return "no" end
     return "unknown"
 end
+
 local function acEntryFor(item)
     if not item then return nil end
     local v = State.acCraftCache[acKey(item.internalName, item.damage or 0)]
     if type(v) == "table" then return v end
     return nil
 end
+
 local function acMeCount(internalName, damage)
     if not component.isAvailable("me_interface") then return 0 end
     local me = component.me_interface
@@ -2296,6 +2387,7 @@ local function acMeCount(internalName, damage)
     end
     return total
 end
+
 local function acLogJob(job, segs, live)
     local plain = ""
     for _, s in ipairs(segs) do plain = plain .. s[1] end
@@ -2311,6 +2403,7 @@ local function acLogJob(job, segs, live)
     markDirty("right")
     return entry
 end
+
 acReport = function()
     local job = State.autocraftJob
     local payload = { terminalId = Config.TERMINAL_ID }
@@ -2328,6 +2421,7 @@ acReport = function()
     end
     HttpModule.request("oc_autocraft_report", payload)
 end
+
 local function craftStatus(req)
     if type(req) ~= "table" then return "running" end
     local hf = callMethod(req, "hasFinished")
@@ -2343,11 +2437,13 @@ local function craftStatus(req)
     end
     return "running"
 end
+
 local function acDecrementSnapshot(internalName, damage, amount)
     for i, it in ipairs(Data.buyCatalogDisplay) do
         if it.internalName == internalName and it.damage == damage then it.qty = math.max(0, (it.qty or 0) - amount); break end
     end
 end
+
 local function acFinishAndClose(job, success)
     acReport()
     State.needStockRefresh = true
@@ -2355,12 +2451,14 @@ local function acFinishAndClose(job, success)
     State.autocraftJob = nil
     forceRender()
 end
+
 local function acFail(job)
     cancelCraftReq(job.req)
     acLogJob(job, { { "Результат крафта: ", Colors.text_bright }, { "Неудача (не хватает ресурсов в МЭ)", Colors.error_red } })
     acLogJob(job, { { "Попробуйте заказать меньше предметов", Colors.warning } })
     acFinishAndClose(job, false)
 end
+
 local function acDispense(job)
     job.phase = "dispensing"
     local stockBefore = acMeCount(job.internalName, job.damage)
@@ -2429,6 +2527,7 @@ local function acDispense(job)
     end
     acFinishAndClose(job, true)
 end
+
 acOpenConfirm = function()
     local item = State.selectedItem
     if not item then return end
@@ -2456,6 +2555,7 @@ acOpenConfirm = function()
     State.autocraftJob = { phase = "confirm", internalName = item.internalName, displayName = item.displayName, damage = item.damage or 0, unitCoin = item.priceCoin or 0, unitEma = item.priceEma or 0, ordered = ordered, inStock = inStock, toCraft = toCraft, ops = ops, dispensed = 0, elapsed = 0, pendingLogs = {} }
     forceRender()
 end
+
 acStart = function()
     local job = State.autocraftJob
     if not job or job.phase ~= "confirm" then return end
@@ -2495,6 +2595,7 @@ acStart = function()
     acLogJob(job, { { "Прошло времени: ", Colors.text_bright }, { "0 сек", Colors.accent_cyan } }, "time")
     forceRender()
 end
+
 acStep = function()
     local job = State.autocraftJob
     if not job or job.phase ~= "crafting" then return end
@@ -2524,6 +2625,7 @@ acStep = function()
     end
     if now - (job.lastReportU or 0) >= 3 then job.lastReportU = now; acReport() end
 end
+
 acCancel = function(byPlayer)
     local job = State.autocraftJob
     if not job then return end
@@ -2533,6 +2635,7 @@ acCancel = function(byPlayer)
         acFinishAndClose(job, false)
     end
 end
+
 acPlayerLeft = function()
     local job = State.autocraftJob
     if not job then return end
@@ -2615,6 +2718,7 @@ local function performBuy()
     end
     finishBuy(extracted > 0, extracted > 0 and extracted or "Не удалось выдать предмет", partial)
 end
+
 local function performSell()
     TransactionModule.checkTimeout()
     local ok, err = validateSellRequest()
@@ -2687,6 +2791,7 @@ local function performSetPurchase()
     addLogMessage("Вы можете забрать содержимое набора выше.", Colors.warning)
     markDirty("full")
 end
+
 local function performSetDispense()
     TransactionModule.checkTimeout()
     local ok, err = validateTerminalState()
@@ -2780,6 +2885,7 @@ local function abortOpen(playerName)
     State.modalState.active = false; State.modalState.kind = nil; State.modalState.data = nil; State.modalData = nil
     drawWelcomeScreen()
 end
+
 local function openShopForPlayer(playerName)
     local player = PlayerModule.getOrCreate(playerName)
     if player.balance == 0 and player.transactions == 0 then
@@ -2801,7 +2907,7 @@ local function openShopForPlayer(playerName)
         abortOpen(playerName)
         return
     end
-
+    
     -- RESET STATE ON ENTER
     State.currentCategory = "ВСЕ"
     State.categoryDropdownOpen = false
@@ -2815,7 +2921,7 @@ local function openShopForPlayer(playerName)
     State.setView = "list"
     State.currentShopMode = "buy"
     State.logMessages = {}
-
+    
     State.currentScreen = "shop"
     if State.currentShopMode == "sets" then
         applySetsFilter()
@@ -2831,6 +2937,7 @@ local function openShopForPlayer(playerName)
     State.needStockRefresh = true
     event.timer(1, function() checkRewardedReports(); return false end)
 end
+
 local function handlePlayerEnter(playerName)
     writeDebugLog("👤 Игрок вошёл: " .. tostring(playerName))
     addWelcomeLog("⏳ Подключение к серверу...", Colors.warning)
@@ -2875,6 +2982,7 @@ local function handlePlayerEnter(playerName)
     end
     openShopForPlayer(playerName)
 end
+
 local function handlePlayerLeave()
     writeDebugLog("👋 Игрок вышел: " .. tostring(State.currentPlayer))
     acPlayerLeft()
@@ -2883,7 +2991,7 @@ local function handlePlayerLeave()
     State.logMessages = {}; State.syncLogs = {}
     if not State.syncInProgress then State.welcomeLog = {} end
     Buffer.clear()
-
+    
     -- RESET STATE ON EXIT
     State.currentCategory = "ВСЕ"
     State.categoryDropdownOpen = false
@@ -2896,7 +3004,7 @@ local function handlePlayerLeave()
     State.selectedSetItem = nil
     State.setView = "list"
     State.currentShopMode = "buy"
-
+    
     State.currentPlayer = nil; State.currentSession = nil; State.pimOwner = nil; State.pimActive = false; State.pimAbsentCount = 0
     State.currentScreen = "welcome"; State.screenInitialized = false
     if not State.syncInProgress then drawWelcomeScreen() end
@@ -2907,12 +3015,13 @@ local function isCraftingBusy()
     local job = State.autocraftJob
     return job and (job.phase == "crafting" or job.phase == "dispensing")
 end
+
 local function handleTouch(x, y, playerName)
     if not State.pimActive or not State.currentPlayer then return end
     if not PimModule.isOwner(playerName) then return end
     if not PimModule.ensureValid(State.currentPlayer) then safeExit("invalid PIM state on touch"); return end
     if isCraftingBusy() then return end
-
+    
     -- Help Modal Handling
     if State.modalState.active and State.modalState.kind == "help" then
         for _, btn in ipairs(State.buttons) do
@@ -3059,6 +3168,7 @@ local function handleTouch(x, y, playerName)
     end
     if State.purchaseInputActive or State.sellInputActive then State.purchaseInputActive = false; State.sellInputActive = false; markDirty("right") end
 end
+
 function switchToMode(mode)
     State.currentShopMode = mode
     State.selectedIndex = 0; State.selectedItem = nil
@@ -3090,6 +3200,7 @@ function switchToMode(mode)
     end
     State.currentScreen = "shop"; markDirty("full")
 end
+
 function safeExit(reason)
     if State.isShuttingDown then return end
     State.isShuttingDown = true
@@ -3344,10 +3455,12 @@ local function main()
         end
     end
 end
+
 gpu.setResolution(Config.SCREEN_W, Config.SCREEN_H)
 gpu.setBackground(Colors.bg_main)
 event.listen("terminate", function() State.isShuttingDown = true; PlayerModule.save(); PendingModule.save(); CatalogModule.saveSetsProgress() end)
 event.listen("computer_shutdown", function() State.isShuttingDown = true; PlayerModule.save(); PendingModule.save(); CatalogModule.saveSetsProgress() end)
+
 while true do
     local ok, err = pcall(main)
     if not ok then
