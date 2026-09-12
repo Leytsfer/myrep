@@ -1618,10 +1618,12 @@ writeText(allBtnX + 2, 2, allBtnText, Colors.white, State.categoryDropdownOpen a
 writeText(allBtnX + 2 + unicode.len(allBtnText), 2, "]", Colors.white, State.categoryDropdownOpen and Colors.dropdown_active or Colors.bg_button)
 table.insert(State.buttons, { id = "toggle_category", x = allBtnX, y = 2, w = UI.header.allBtnW, h = 1 })
 end
-local title = "                               ДОБРО ПОЖАЛОВАТЬ, ВЫ НАХОДИТЕСЬ В МАГАЗИНЕ НА TRADE MARKET"
--- центр свободной зоны справа от поля поиска:
-local tradeMarketX = math.floor((searchX + searchW + Config.SCREEN_W) / 2) - math.floor(unicode.len(title) / 2)
-writeText(tradeMarketX, 2, title, Colors.cyan, Colors.bg_header)
+-- ТОЧНЫЙ центр правой колонки (те же координаты, что у блока ПОКУПАЕМЫЙ ПРЕДМЕТ)
+local panelX = math.floor(Config.SCREEN_W * UI.list.wRatio) + 2
+local panelW = Config.SCREEN_W - panelX
+local caption = "ДОБРО ПОЖАЛОВАТЬ НА TRADE MARKET SHOP!"
+local tradeMarketX = panelX + math.floor((panelW - unicode.len(caption)) / 2)
+writeText(tradeMarketX, 2, caption, Colors.cyan, Colors.bg_header)
 local listW = math.floor(Config.SCREEN_W * UI.list.wRatio)
 Buffer.fill(1, 4, listW, 1, " ", Colors.text_bright, Colors.line)
 Buffer.fill(listW + 2, 4, Config.SCREEN_W - listW - 1, 1, " ", Colors.text_bright, Colors.line)
