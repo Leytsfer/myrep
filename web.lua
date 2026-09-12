@@ -47,6 +47,8 @@ logMessages = {}, logMessageColor = 0x555555, welcomeLog = {}, syncLogs = {}, MA
 lastPendingFlush = 0, pendingFullReload = false,
 setView = "list", selectedSet = nil, selectedSetItem = nil,
 helpPage = 1,
+welcomeAnim = 0,
+lastWelcomeAnim = 0,
 bannedNow = false,
 pauseGraceUntil = 0,
 lastHeartbeat = 0
@@ -2184,41 +2186,83 @@ writeText(Config.SCREEN_W - 30, Config.SCREEN_H, "Coded By Leytsfer v 6.10.6", C
 local reportBtnW = 18
 drawButton(Config.SCREEN_W - reportBtnW - 2, y + 1, reportBtnW, 1, "[ Нашёл ошибку ]", Colors.tomato, Colors.white, "report_bug")
 end
+
+local function expand2(t)
+local out = ""
+for i = 1, unicode.len(t) do
+local c = unicode.sub(t, i, i)
+out = out .. c .. c
+end
+return out
+end
+local WELCOME_ART = {
+{ {t="✦  ", c=Colors.warning}, {t="  ▄▄▄▄▄▄  ", c=Colors.accent_cyan}, {t="  ✦", c=Colors.warning} },
+{ {t=" ▄▄▄▄ ", c=Colors.orange}, {t="    ", c=Colors.bg_main}, {t=" ▄▀▀▀▀▀▀▄ ", c=Colors.accent_cyan}, {t="    ", c=Colors.bg_main}, {t=" ▄▄▄▄ ", c=Colors.orange} },
+{ {t="▄▀▀▀▀▄", c=Colors.orange}, {t="    ", c=Colors.bg_main}, {t="▄▀▀▀▀▀▀▀▀▄", c=Colors.accent_cyan}, {t="    ", c=Colors.bg_main}, {t="▄▀▀▀▀▄", c=Colors.orange} },
+{ {t="▄▀▀▀▀▄", c=Colors.orange}, {t="    ", c=Colors.bg_main}, {t="▀▄▄▄▄▄▄▄▄▀", c=Colors.accent_cyan}, {t="    ", c=Colors.bg_main}, {t="▄▀▀▀▀▄", c=Colors.orange} },
+{ {t=" ▀▀▀▀ ", c=Colors.orange}, {t="    ", c=Colors.bg_main}, {t=" ▀▄▄▄▄▄▄▀ ", c=Colors.accent_cyan}, {t="    ", c=Colors.bg_main}, {t=" ▀▀▀▀ ", c=Colors.orange} },
+{ {t="✦  ", c=Colors.warning}, {t="  ▀▀▀▀▀  ", c=Colors.accent_cyan}, {t="  ✦", c=Colors.warning} },
+}
+
 function drawWelcomeScreen()
 Buffer.clear()
 State.buttons = {}
 drawBox(1, 1, Config.SCREEN_W, Config.SCREEN_H, Colors.line, Colors.bg_main)
-local titleLines = {
-"████████╗██████╗  █████╗ ██████╗ ███████╗   ███╗   ███╗ █████╗ ██████╗ ██╗  ██╗███████╗████████╗",
-"╚══██╗██║██╔══██╗██╔══██╗██╔══██╗██╔════╝   ████╗ ████║██╔══██╗██╔══██╗██║ ██╝██╔════╝══██╔╝",
-"   ██║   ██████╔╝███████║██║  ██║█████╗     ████████║███████║██████╔╝█████╔╝ █████╗     ██║   ",
-"   ██║   ██╔══██╗██╔══██║██║  ██║██╔══╝     ██║██╝██║██╔══██║██╔══██╗██╔═██╗ ██╔══╝     ██║   ",
-"   ██║   ██║  ██║██║  ██║██████╔╝███████╗   ██║ ╚═╝ ██║██║  ██║██║  ██║██║  ██╗███████╗   ██║   ",
-"   ╚═╝   ╚═╝  ╚═╝═╝  ╚═╝═════╝ ╚══════╝   ╚═╝     ╚═╝╚═╝  ╚═╝═╝  ╚═╝══════╝   ╚═╝   " }
-for i, line in ipairs(titleLines) do writeText(math.floor((Config.SCREEN_W - unicode.len(line)) / 2) + 1, 12 + i - 1, line, Colors.line, Colors.bg_main) end
-if State.serverState.maintenance or State.serverState.terminalPaused then
-drawCenteredText(22, "⚠️ Терминал на техническом обслуживании", Colors.warning, Colors.bg_main)
-drawCenteredText(24, "Вход временно заблокирован", Colors.text_main, Colors.bg_main)
-elseif State.syncInProgress then
-drawCenteredText(22, "⏳ Идёт синхронизация с сервером...", Colors.warning, Colors.bg_main)
-drawCenteredText(24, "Магазин откроется после обновления", Colors.text_main, Colors.bg_main)
+-- Пиксель-арт эмблема (алмаз + монеты), увеличение x2
+local topY = 4
+for i, row in ipairs(WELCOME_ART) do
+local total = 0
+for _, s in ipairs(row) do total = total + unicode.len(expand2(s.t)) end
+local x = math.floor((Config.SCREEN_W - total) / 2) + 1
+for _, s in ipairs(row) do
+local expanded = expand2(s.t)
+writeText(x, topY + i - 1, expanded, s.c, Colors.bg_main)
+x = x + unicode.len(expanded)
+end
+end
+-- Название
+local titleSegs = { {t="◆ ", c=Colors.accent_cyan}, {t="T R A D E   M A R K E T", c=Colors.white}, {t=" ◆", c=Colors.accent_cyan} }
+local tTotal = 0
+for _, s in ipairs(titleSegs) do tTotal = tTotal + unicode.len(s.t) end
+local tx = math.floor((Config.SCREEN_W - tTotal) / 2) + 1
+for _, s in ipairs(titleSegs) do
+writeText(tx, 12, s.t, s.c, Colors.bg_main)
+tx = tx + unicode.len(s.t)
+end
+drawCenteredText(13, "автоматический торговый терминал", Colors.text_gray, Colors.bg_main)
+-- Приглашение на PIM с анимацией стрелок
+if State.catalogsLoaded and not State.syncInProgress then
+local pulse = (State.welcomeAnim == 0) and Colors.accent_main or Colors.accent_cyan
+if State.welcomeAnim == 0 then
+drawCenteredText(16, "↓  ↓  ↓  ↓  ↓", Colors.warning, Colors.bg_main)
+else
+drawCenteredText(16, "   ↓  ↓  ↓   ", Colors.warning, Colors.bg_main)
+end
+drawCenteredText(17, "Встаньте на PIM для авторизации", pulse, Colors.bg_main)
+if State.welcomeAnim == 0 then
+drawCenteredText(18, "   ↓  ↓  ↓   ", Colors.warning, Colors.bg_main)
+else
+drawCenteredText(18, "↓  ↓  ↓  ↓  ↓", Colors.warning, Colors.bg_main)
+end
+end
+-- Статусные сообщения (тексты те же)
+if State.syncInProgress then
+drawCenteredText(20, "⏳ Идёт синхронизация с сервером...", Colors.warning, Colors.bg_main)
+drawCenteredText(22, "Магазин откроется после обновления", Colors.text_main, Colors.bg_main)
 elseif not State.catalogsLoaded then
 if State.catalogLoadFailed then
-drawCenteredText(22, "⚠️ Ошибка загрузки каталогов", Colors.error_red, Colors.bg_main)
-drawCenteredText(24, "Повтор через " .. Config.CATALOG_RETRY_INTERVAL .. " сек...", Colors.warning, Colors.bg_main)
+drawCenteredText(20, "⚠️ Ошибка загрузки каталогов", Colors.error_red, Colors.bg_main)
+drawCenteredText(22, "Повтор через " .. Config.CATALOG_RETRY_INTERVAL .. " сек...", Colors.warning, Colors.bg_main)
 else
-drawCenteredText(22, "⏳ Синхронизация каталогов с сервером...", Colors.warning, Colors.bg_main)
-drawCenteredText(24, "Подключение к веб-серверу...", Colors.text_main, Colors.bg_main)
+drawCenteredText(20, "⏳ Синхронизация каталогов с сервером...", Colors.warning, Colors.bg_main)
+drawCenteredText(22, "Подключение к веб-серверу...", Colors.text_main, Colors.bg_main)
 end
-else
-drawCenteredText(22, "↓ Встаньте на PIM для входа ↓", Colors.accent_main, Colors.bg_main)
-drawCenteredText(24, "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", Colors.line, Colors.bg_main)
 end
-if State.serverState.maintenance then drawCenteredText(27, "⚠️ Сервер в режиме обслуживания", Colors.error_red, Colors.bg_main)
-elseif State.serverState.terminalPaused then drawCenteredText(27, "Терминал временно приостановлен", Colors.warning, Colors.bg_main) end
-drawCenteredText(30, "Trade Shop by Leytsfer — v 6.10.6", Colors.text_main, Colors.bg_main)
-local logStartY = 32
-local logEndY = logStartY + 10
+if State.serverState.maintenance then drawCenteredText(24, "⚠️ Сервер в режиме обслуживания", Colors.error_red, Colors.bg_main)
+elseif State.serverState.terminalPaused then drawCenteredText(24, "Терминал временно приостановлен", Colors.warning, Colors.bg_main) end
+-- Логирование (сдвинуто ниже)
+local logStartY = 34
+local logEndY = 45
 Buffer.fill(1, logStartY, Config.SCREEN_W, logEndY - logStartY + 1, " ", Colors.text_bright, Colors.bg_main)
 if #State.welcomeLog > 0 then
 local maxLines = 8
@@ -2228,9 +2272,13 @@ local y = logStartY + (i - startIndex)
 if y <= logEndY then drawCenteredText(y, State.welcomeLog[i].message, State.welcomeLog[i].color, Colors.bg_main) end
 end
 end
+-- Авторская метка в самом низу
+drawCenteredText(49, "Trade Shop by Leytsfer — v 6.10.6", Colors.text_dark, Colors.bg_main)
 Buffer.flush()
 State.screenInitialized = true
 end
+
+
 function drawMainScreen()
 if State.currentScreen == "welcome" then drawWelcomeScreen(); return end
 State.buttons = {}
@@ -2666,6 +2714,11 @@ State.modalState.active = false; State.modalState.kind = nil; State.modalState.d
 end
 function performBuy()
 TransactionModule.checkTimeout()
+if State.currentScreen == "welcome" and computer.uptime() - State.lastWelcomeAnim > 0.6 then
+State.lastWelcomeAnim = computer.uptime()
+State.welcomeAnim = 1 - State.welcomeAnim
+markDirty("welcome")
+end
 local ok, err = validateBuyRequest()
 if not ok then
 if err == "Недостаточно Coina" or err == "Недостаточно EMA" then
