@@ -1618,7 +1618,7 @@ writeText(allBtnX + 2, 2, allBtnText, Colors.white, State.categoryDropdownOpen a
 writeText(allBtnX + 2 + unicode.len(allBtnText), 2, "]", Colors.white, State.categoryDropdownOpen and Colors.dropdown_active or Colors.bg_button)
 table.insert(State.buttons, { id = "toggle_category", x = allBtnX, y = 2, w = UI.header.allBtnW, h = 1 })
 end
-local title = "ДОБРО ПОЖАЛОВАТЬ, ВЫ НАХОДИТЕСЬ В МАГАЗИНЕ НА TRADE MARKET"
+local title = "                               ДОБРО ПОЖАЛОВАТЬ, ВЫ НАХОДИТЕСЬ В МАГАЗИНЕ НА TRADE MARKET"
 -- центр свободной зоны справа от поля поиска:
 local tradeMarketX = math.floor((searchX + searchW + Config.SCREEN_W) / 2) - math.floor(unicode.len(title) / 2)
 writeText(tradeMarketX, 2, title, Colors.cyan, Colors.bg_header)
