@@ -2322,48 +2322,49 @@ end
 
 
 function drawWelcomeScreen()
-  Buffer.clear()
-  State.buttons = {}
-  drawBox(1, 1, Config.SCREEN_W, Config.SCREEN_H, Colors.line, Colors.bg_main)
-  -- Логотип: центрирован, строки 2..41
-  local ax = math.floor((Config.SCREEN_W - ART_W) / 2) + 1
-  local ay = 2
-  for ry, segs in ipairs(buildArtRendered()) do
-    local y = ay + ry - 1
-    for _, s in ipairs(segs) do
-      Buffer.write(ax + s.x - 1, y, s.text, s.fg, s.bg)
-    end
-  end
-  -- Строка 42: сразу под артом — статус / приглашение
-  local STATUS_Y = 42
-  local LOG_START, LOG_END = 43, 48
-  local AUTHOR_Y = 49
-  if State.serverState.maintenance or State.serverState.terminalPaused then
-    drawCenteredText(STATUS_Y, "⚠ Терминал на техническом обслуживании — вход закрыт", Colors.warning, Colors.bg_main)
-  elseif State.syncInProgress then
-    drawCenteredText(STATUS_Y, "⏳ Идёт синхронизация с сервером...", Colors.warning, Colors.bg_main)
-  elseif not State.catalogsLoaded then
-    if State.catalogLoadFailed then
-      drawCenteredText(STATUS_Y, "⚠ Ошибка загрузки каталогов, повтор через " .. Config.CATALOG_RETRY_INTERVAL .. " сек", Colors.error_red, Colors.bg_main)
-    else
-      drawCenteredText(STATUS_Y, "⏳ Синхронизация каталогов с сервером...", Colors.warning, Colors.bg_main)
-    end
-  else
-    drawCenteredText(STATUS_Y, "↓ Встаньте на PIM для входа ↓", Colors.accent_main, Colors.bg_main)
-  end
-  -- Лог загрузки (6 строк, ниже приглашения)
-  if #State.welcomeLog > 0 then
-    local maxLines = LOG_END - LOG_START + 1
-    local startIndex = math.max(1, #State.welcomeLog - maxLines + 1)
-    for i = startIndex, #State.welcomeLog do
-      local y = LOG_START + (i - startIndex)
-      if y <= LOG_END then drawCenteredText(y, State.welcomeLog[i].message, State.welcomeLog[i].color, Colors.bg_main) end
-    end
-  end
-  -- Авторская метка в самом низу
-  drawCenteredText(AUTHOR_Y, "Trade Shop by Leytsfer — v 6.10.6", Colors.text_dark, Colors.bg_main)
-  Buffer.flush()
-  State.screenInitialized = true
+Buffer.clear()
+State.buttons = {}
+local BG = Colors.bg_welcome or Colors.bg_main
+drawBox(1, 1, Config.SCREEN_W, Config.SCREEN_H, Colors.line, BG)
+-- Пиксель-арт логотип (строки 2..41)
+local ax = math.floor((Config.SCREEN_W - ART_W) / 2) + 1
+local ay = 2
+for ry, segs in ipairs(buildArtRendered()) do
+local y = ay + ry - 1
+for _, s in ipairs(segs) do
+Buffer.write(ax + s.x - 1, y, s.text, s.fg, s.bg)
+end
+end
+-- Раскладка под логотипом
+local INVITE_Y = 43            -- строка приглашения (поднята вплотную под лого, с отступом-воздухом)
+local LOG_START, LOG_END = 42, 48  -- зона логирования
+local LOG_GAP = 2              -- шаг между строками лога (1 строка = пустой зазор)
+local AUTHOR_Y = 49            -- авторская метка в самом низу
+local logActive = (#State.welcomeLog > 0) or State.syncInProgress or State.pimActive
+if State.serverState.maintenance or State.serverState.terminalPaused then
+drawCenteredText(INVITE_Y, "⚠ Терминал на техническом обслуживании — вход закрыт", Colors.warning, BG)
+elseif logActive then
+-- Игрок на PIM / идёт синхронизация: приглашение скрыто, лог с отступами
+local maxMsgs = math.floor((LOG_END - LOG_START) / LOG_GAP) + 1
+local startIndex = math.max(1, #State.welcomeLog - maxMsgs + 1)
+local y = LOG_START
+for i = startIndex, #State.welcomeLog do
+if y > LOG_END then break end
+drawCenteredText(y, State.welcomeLog[i].message, State.welcomeLog[i].color, BG)
+y = y + LOG_GAP
+end
+elseif State.catalogsLoaded then
+drawCenteredText(INVITE_Y, "↓ Встаньте на PIM для входа ↓", Colors.accent_main, BG)
+elseif State.catalogLoadFailed then
+drawCenteredText(INVITE_Y, "⚠ Ошибка загрузки каталогов", Colors.error_red, BG)
+drawCenteredText(INVITE_Y + 2, "Повтор через " .. Config.CATALOG_RETRY_INTERVAL .. " сек...", Colors.warning, BG)
+else
+drawCenteredText(INVITE_Y, "⏳ Синхронизация каталогов с сервером...", Colors.warning, BG)
+end
+-- Авторская метка в самом низу
+drawCenteredText(AUTHOR_Y, "Trade Shop by Leytsfer — v 6.10.6", Colors.text_dark, BG)
+Buffer.flush()
+State.screenInitialized = true
 end
 
 
