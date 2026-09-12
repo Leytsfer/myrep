@@ -55,6 +55,22 @@ pauseGraceUntil = 0,
 lastHeartbeat = 0,
 AC_RECIPES_REBUILD_INTERVAL = 6 * 3600,
 }
+
+-- Защита от nil в сравнениях/арифметике (если поля потерялись при сборке файла)
+State.pauseGraceUntil = State.pauseGraceUntil or 0
+State.lastHeartbeat = State.lastHeartbeat or 0
+State.lastStockRefresh = State.lastStockRefresh or 0
+State.lastCatalogCheck = State.lastCatalogCheck or 0
+State.lastPendingFlush = State.lastPendingFlush or 0
+State.lastPimCheck = State.lastPimCheck or 0
+State.acLastCmd = State.acLastCmd or 0
+State.bannedNow = State.bannedNow or false
+State.helpPage = State.helpPage or 1
+State.visibleRows = State.visibleRows or 0
+State.listScroll = State.listScroll or 1
+State.selectedIndex = State.selectedIndex or 0
+State.modalState = State.modalState or { active = false, kind = nil, data = nil }
+
 local Data = {
 players = {}, buyCatalog = {}, sellCatalog = {}, reports = {}, pendingChanges = {},
 versions = { buy = 0, sell = 0, users = 0, sets = 0 },
@@ -789,7 +805,8 @@ function validateTerminalState()
 if State.isShuttingDown then return false, "Терминал завершает работу" end
 if State.serverState.maintenance then return false, "Сервер на обслуживании" end
 if State.serverState.terminalPaused then
-if not (State.pauseGraceUntil > 0 and computer.uptime() < State.pauseGraceUntil) then
+local grace = State.pauseGraceUntil or 0
+if not (grace > 0 and computer.uptime() < grace) then
 return false, "Терминал на техническом обслуживании"
 end
 end
@@ -2408,7 +2425,7 @@ function asBoolFlag(v)
 return v == true or v == 1 or v == "1"
 end
 function heartbeatTick()
-if computer.uptime() - State.lastHeartbeat < Config.HEARTBEAT_INTERVAL then return end
+if computer.uptime() - (State.lastHeartbeat or 0) < Config.HEARTBEAT_INTERVAL then return end
 State.lastHeartbeat = computer.uptime()
 local r = HttpModule.request("oc_heartbeat", {
 terminalId = Config.TERMINAL_ID,
@@ -3473,7 +3490,7 @@ if not State.syncInProgress and not State.TRANSACTION_LOCK and component.isAvail
 end
 heartbeatTick()
 if State.modalState.kind == "pause_countdown" then
-if computer.uptime() >= State.pauseGraceUntil then
+if computer.uptime() >= (State.pauseGraceUntil or 0) then
 State.modalState.active = false; State.modalState.kind = nil; State.modalState.data = nil; State.modalData = nil
 markDirty("full")
 else
@@ -3485,21 +3502,21 @@ State.needStockRefresh = false
 updateBuyCatalogFromME()
 if State.currentShopMode == "sets" then markDirty("full") end
 end
-if not State.pimActive and not State.syncInProgress and computer.uptime() - State.lastCatalogCheck > Config.CATALOG_CHECK_INTERVAL then
+if not State.pimActive and not State.syncInProgress and computer.uptime() - (State.lastCatalogCheck or 0) > Config.CATALOG_CHECK_INTERVAL then
 State.lastCatalogCheck = computer.uptime(); syncCatalogsIfNeeded("timer")
 end
 if not State.pimActive and State.pendingFullReload and not State.syncInProgress then
 State.pendingFullReload = false
 syncCatalogsIfNeeded("idle")
 end
-if not State.pimActive and computer.uptime() - State.lastPendingFlush > Config.PENDING_FLUSH_INTERVAL then
+if not State.pimActive and computer.uptime() - (State.lastPendingFlush or 0) > Config.PENDING_FLUSH_INTERVAL then
 State.lastPendingFlush = computer.uptime()
 if #Data.pendingChanges > 0 then PendingModule.flush() end
 end
-if not State.pimActive and State.catalogsLoaded and computer.uptime() - State.lastCatalogUpdate > Config.CATALOG_UPDATE_INTERVAL then
+if not State.pimActive and State.catalogsLoaded and computer.uptime() - (State.lastCatalogUpdate or 0) > Config.CATALOG_UPDATE_INTERVAL then
 State.lastCatalogUpdate = computer.uptime(); updateBuyCatalogFromME()
 end
-if State.pimActive and State.currentScreen == "shop" and computer.uptime() - State.lastStockRefresh > 10 then
+if State.pimActive and State.currentScreen == "shop" and computer.uptime() - (State.lastStockRefresh or 0) > 10 then
 State.lastStockRefresh = computer.uptime()
 updateBuyCatalogFromME()
 if State.currentShopMode == "sets" then markDirty("full") end
@@ -3511,7 +3528,7 @@ markDirty("right")
 end
 acStep()
 if State.autocraftJob and State.autocraftJob.phase == "crafting" then
-if computer.uptime() - State.acLastCmd > 10 then
+if computer.uptime() - (State.acLastCmd or 0) > 10 then
 State.acLastCmd = computer.uptime()
 local cmds = HttpModule.request("oc_get_cmds", { terminalId = Config.TERMINAL_ID })
 if cmds and cmds.commands then
@@ -3524,7 +3541,7 @@ end
 end
 end
 end
-if State.pimActive and not State.syncInProgress and computer.uptime() - State.lastPimCheck > 1 then
+if State.pimActive and not State.syncInProgress and computer.uptime() - (State.lastPimCheck or 0) > 1 then
 State.lastPimCheck = computer.uptime()
 local pst = pimPresenceState()
 if pst == "present" then
