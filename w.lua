@@ -2178,7 +2178,7 @@ local buyColor = State.currentShopMode == "buy" and Colors.success_green or Colo
 drawButton(startX, y + 1, btnW, btnH, "[ Покупки ]", buyColor, Colors.white, "page_buy")
 local sellX = startX + btnW + spacing
 local sellColor = State.currentShopMode == "sell" and Colors.tomato or Colors.bg_button
-drawButton(sellX, y + 1, btnW, btnH, "[ Пополнение ]", buyColor, Colors.white, "page_sell")
+drawButton(sellX, y + 1, btnW, btnH, "[ Пополнение ]", Colors.tomato, Colors.bg_button, "page_sell")
 local questX = sellX + btnW + spacing
 local questColor = State.currentShopMode == "sets" and Colors.purple or Colors.bg_button
 drawButton(questX, y + 1, btnW, btnH, " [ Наборы | Квесты ]", questColor, Colors.white, "page_quests")
