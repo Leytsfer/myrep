@@ -1618,8 +1618,9 @@ writeText(allBtnX + 2, 2, allBtnText, Colors.white, State.categoryDropdownOpen a
 writeText(allBtnX + 2 + unicode.len(allBtnText), 2, "]", Colors.white, State.categoryDropdownOpen and Colors.dropdown_active or Colors.bg_button)
 table.insert(State.buttons, { id = "toggle_category", x = allBtnX, y = 2, w = UI.header.allBtnW, h = 1 })
 end
-local tradeMarketX = math.floor((Config.SCREEN_W + searchX + searchW) / 2) - math.floor(unicode.len("ДОБРО ПОЖАЛОВАТЬ В МАГАЗИН TRADE MARKET SHOP!") / 2)
-writeText(tradeMarketX, 2, "ДОБРО ПОЖАЛОВАТЬ В МАГАЗИН TRADE MARKET SHOP!", Colors.cyan, Colors.bg_header)
+local title = "ДОБРО ПОЖАЛОВАТЬ В МАГАЗИН TRADE MARKET SHOP!"
+local tradeMarketX = 70   -- любая колонка от 1 до 160; меньше = левее, больше = правее
+writeText(tradeMarketX, 2, title, Colors.cyan, Colors.bg_header)
 local listW = math.floor(Config.SCREEN_W * UI.list.wRatio)
 Buffer.fill(1, 4, listW, 1, " ", Colors.text_bright, Colors.line)
 Buffer.fill(listW + 2, 4, Config.SCREEN_W - listW - 1, 1, " ", Colors.text_bright, Colors.line)
