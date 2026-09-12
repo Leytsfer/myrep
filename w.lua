@@ -23,6 +23,7 @@ SAVE_DB_INTERVAL = 10, PENDING_FLUSH_THRESHOLD = 50, PENDING_FLUSH_INTERVAL = 60
 CATALOG_UPDATE_INTERVAL = 60, TIMEZONE_OFFSET = 3 * 3600,
 PRESENCE_HOLD_DELAY = 2, PRESENCE_CONFIRM_DELAY = 1.5,
 HEARTBEAT_INTERVAL = 30, PAUSE_GRACE_SECONDS = 30,
+AC_RECIPES_REBUILD_INTERVAL = 3600,
 FILES = { players = "/home/players.db", buyCatalog = "/home/buyCatalog.lua", sellCatalog = "/home/sellCatalog.lua", reports = "/home/reports.json", pendingChanges = "/home/pending_changes.lua", catalogVersion = "/home/catalogVersion.dat", setsCatalog = "/home/setsCatalog.lua", setsProgress = "/home/setsProgress.lua", acRecipes = "/home/acRecipes.lua" }
 }
 local State = {
@@ -3488,7 +3489,7 @@ logEvent(e, table.unpack(ev, 2))
 TransactionModule.checkTimeout()
 if State.acKnownRecipes == nil then
 if not State.syncInProgress and component.isAvailable("me_interface") then acRecipesBuild() end
-elseif computer.uptime() - State.acDbRefreshAt > Config.AC_RECIPES_REBUILD_INTERVAL then
+elseif computer.uptime() - (State.acDbRefreshAt or 0) > (Config.AC_RECIPES_REBUILD_INTERVAL or 3600) then
 if not State.syncInProgress and not State.TRANSACTION_LOCK and component.isAvailable("me_interface") then acRecipesBuild() end
 end
 heartbeatTick()
